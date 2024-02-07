@@ -7,7 +7,7 @@ import "../../src/interfaces/IHexToken.sol";
 
 contract AirdropNoStateUpdateTest is BootstrapHelper {
     function testAirdropNoStateUpdate() public {
-        uint256 amount = 100 ether;
+        uint256 amount = 100e8;
 
         // give HEX to the sender
         _dealToken(hexToken, user, amount * 2);
@@ -53,6 +53,9 @@ contract AirdropNoStateUpdateTest is BootstrapHelper {
         //users claims airdrop
         vm.prank(user);
         bootstrap.claimAirdrop();
+
+        //get claimedAirdrop bool
+        (,,, bool claimedAirdrop) = bootstrap.userInfos(user);
 
         //assert that user did not claim the airdrop
         assertEq(claimedAirdrop, false);
