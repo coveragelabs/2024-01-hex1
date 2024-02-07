@@ -13,3 +13,9 @@ docs/
 
 # Dotenv file
 .env
+
+# Echidna
+corpus/
+**/crytic-compile
+**/crytic-export
+**/corpus
