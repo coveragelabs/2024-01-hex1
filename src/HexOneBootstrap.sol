@@ -188,7 +188,7 @@ contract HexOneBootstrap is IHexOneBootstrap, Ownable {
         if (block.timestamp < airdropStart) revert AirdropHasNotStartedYet(block.timestamp);
         if (block.timestamp >= airdropEnd) revert AirdropAlreadyEnded(block.timestamp);
 
-        return ((block.timestamp - airdropStart) / 1 days) + 1;
+        return ((block.timestamp) - airdropStart / 1 days) + 1;
     }
 
     /// @dev allows user to participate in the sacrifice.
@@ -502,7 +502,7 @@ contract HexOneBootstrap is IHexOneBootstrap, Ownable {
 
         baseHexit = AIRDROP_HEXIT_INIT_AMOUNT;
         for (uint256 i = 2; i <= currentAirdropDay; ++i) {
-            baseHexit = (baseHexit * AIRDROP_DECREASE_FACTOR) / FIXED_POINT;
+            baseHexit = (baseHexit * SACRIFICE_DECREASE_FACTOR) / FIXED_POINT;
         }
     }
 
