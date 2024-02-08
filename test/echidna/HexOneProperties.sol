@@ -122,6 +122,22 @@ contract HexOneProperties {
             // all users get an initial supply of 100e18 of dai and hex
             hexx.mint(address(user), initialMint);
             dai.mint(address(user), initialMint);
+
+            // approve all contracts
+            user.approveERC20(hexx, address(hexOneVault));
+            user.approveERC20(dai, address(hexOneVault));
+            user.approveERC20(hexit, address(hexOneVault));
+            user.approveERC20(hex1, address(hexOneVault));
+
+            user.approveERC20(hexx, address(hexOneStakingWrap));
+            user.approveERC20(dai, address(hexOneStakingWrap));
+            user.approveERC20(hexit, address(hexOneStakingWrap));
+            user.approveERC20(hex1, address(hexOneStakingWrap));
+
+            user.approveERC20(hexx, address(hexOneBootstrap));
+            user.approveERC20(dai, address(hexOneBootstrap));
+            user.approveERC20(hexit, address(hexOneBootstrap));
+            user.approveERC20(hex1, address(hexOneBootstrap));
         }
     }
 

@@ -19,12 +19,15 @@ contract DexRouterMock {
         uint256 amountOutMin,
         address[] calldata path,
         address to,
-        uint256 deadline
+        uint256
     ) external returns (uint256[] memory amounts) {
+        amounts = new uint256[](path.length);
+        amounts[0] = amountIn;
         ERC20Mock(path[0]).transferFrom(msg.sender, address(this), amountIn);
         uint256 amountOut = amountIn * rates[path[0]][path[1]] / 10000;
         require(amountOut >= amountOutMin, "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT");
-        ERC20Mock(path[1]).transfer(msg.sender, amountOut);
+        ERC20Mock(path[1]).transfer(to, amountOut);
+        amounts[1] = amountOut;
     }
 
     function addLiquidity(address, address, uint256, uint256, uint256, uint256, address, uint256)

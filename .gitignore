@@ -18,3 +18,4 @@ corpus/
 **/crytic-compile
 **/crytic-export
 **/corpus
+.DS_Store
