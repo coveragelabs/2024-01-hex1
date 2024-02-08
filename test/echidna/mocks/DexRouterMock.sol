@@ -22,7 +22,7 @@ contract DexRouterMock {
         uint256 deadline
     ) external returns (uint256[] memory amounts) {
         ERC20Mock(path[0]).transferFrom(msg.sender, address(this), amountIn);
-        uint256 amountOut = amountIn * rates[path[0]][path[2]] / 10000;
+        uint256 amountOut = amountIn * rates[path[0]][path[1]] / 10000;
         require(amountOut >= amountOutMin, "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT");
         ERC20Mock(path[1]).transfer(msg.sender, amountOut);
     }

@@ -12,6 +12,7 @@ import "./mocks/DexFactoryMock.sol";
 import "./mocks/HexMockToken.sol";
 import "./wraps/HexitTokenWrap.sol";
 import "./wraps/Hex1TokenWrap.sol";
+import "./wraps/HexOneStakingWrap.sol";
 
 contract User {
     function proxy(address target, bytes memory data) public returns (bool success, bytes memory err) {
@@ -25,24 +26,28 @@ contract User {
 
 contract HexOneProperties {
     uint256 public totalNbUsers;
+    uint256 public initialMint;
     User[] public users;
+    mapping(User user => uint256[] stakeIds) userToStakeids;
+    address[] public stakeTokens = new address[](3);
+    address[] public sacrificeTokens = new address[](2);
 
     // contracts
     HexitTokenWrap public hexit;
     HexOneBootstrap public hexOneBootstrap;
-    HexOneStaking public hexOneStaking;
+    HexOneStakingWrap public hexOneStakingWrap;
     Hex1TokenWrap public hex1;
     HexOneVault public hexOneVault;
     DexRouterMock public routerMock;
     DexFactoryMock public factoryMock;
     HexMockToken public hexx;
     HexOnePriceFeedMock public hexOnePriceFeedMock;
-
     ERC20Mock public dai;
 
     constructor() payable {
         // config -----------
         totalNbUsers = 10;
+        initialMint = 1000 ether;
 
         uint16 hexDistRate = 10;
         uint16 hexitDistRate = 10;
@@ -58,7 +63,7 @@ contract HexOneProperties {
         dai = new ERC20Mock("DAI token", "DAI");
 
         hexOneVault = new HexOneVault(address(hexx), address(dai), address(hex1));
-        hexOneStaking = new HexOneStaking(address(hexx), address(hexit), hexDistRate, hexitDistRate);
+        hexOneStakingWrap = new HexOneStakingWrap(address(hexx), address(hexit), hexDistRate, hexitDistRate);
         hexOnePriceFeedMock = new HexOnePriceFeedMock();
         hexOneBootstrap = new HexOneBootstrap(
             address(routerMock),
@@ -70,7 +75,7 @@ contract HexOneProperties {
             address(receiver)
         );
 
-        address[] memory stakeTokens = new address[](3); // prepare the allowed staking tokens
+        stakeTokens = new address[](3); // prepare the allowed staking tokens
         stakeTokens[0] = address(dai);
         stakeTokens[1] = address(hex1);
         stakeTokens[2] = address(hexit);
@@ -78,7 +83,7 @@ contract HexOneProperties {
         weights[0] = 700;
         weights[1] = 200;
         weights[2] = 100;
-        address[] memory sacrificeTokens = new address[](2);
+        sacrificeTokens = new address[](2);
         sacrificeTokens[0] = address(hexx);
         sacrificeTokens[1] = address(dai);
         uint16[] memory multipliers = new uint16[](2); // create an array with the corresponding multiplier for each sacrifice token
@@ -87,12 +92,11 @@ contract HexOneProperties {
 
         hex1.setHexOneVault(address(hexOneVault));
         hexit.setHexOneBootstrap(address(hexOneBootstrap));
-        hexOneStaking.setBaseData(address(hexOneVault), address(hexOneBootstrap));
-        hexOneStaking.setStakeTokens(stakeTokens, weights);
-        hexOneVault.setBaseData(address(hexOnePriceFeedMock), address(hexOneStaking), address(hexOneBootstrap));
-        hexOneBootstrap.setBaseData(address(hexOnePriceFeedMock), address(hexOneStaking), address(hexOneVault));
+        hexOneStakingWrap.setBaseData(address(hexOneVault), address(hexOneBootstrap));
+        hexOneStakingWrap.setStakeTokens(stakeTokens, weights);
+        hexOneVault.setBaseData(address(hexOnePriceFeedMock), address(hexOneStakingWrap), address(hexOneBootstrap));
+        hexOneBootstrap.setBaseData(address(hexOnePriceFeedMock), address(hexOneStakingWrap), address(hexOneVault));
         hexOneBootstrap.setSacrificeTokens(sacrificeTokens, multipliers);
-        hexOneBootstrap.setSacrificeStart(block.timestamp);
 
         /// set initial prices 1 == 1
         setPrices(address(dai), address(hex1), 10_000); // 10000 == 1
@@ -103,6 +107,7 @@ contract HexOneProperties {
         setPrices(address(hexit), address(hex1), 10_000);
 
         /// fund router swapper
+
         hexx.mint(address(routerMock), 1000000 ether);
         dai.mint(address(routerMock), 1000000 ether);
         hexit.mintAdmin(address(routerMock), 1000000 ether);
@@ -115,29 +120,128 @@ contract HexOneProperties {
             users.push(user);
 
             // all users get an initial supply of 100e18 of dai and hex
-            hexx.mint(address(user), 100 ether);
-            dai.mint(address(user), 100 ether);
+            hexx.mint(address(user), initialMint);
+            dai.mint(address(user), initialMint);
         }
     }
 
     // --------------------- State updates --------------------- (Here we will be defining all state update functions)
 
     /// ----- HexOneVault -----
-    function randDeposit(uint256 randUser, uint256 randAmount, uint256 randDuration) public {}
-    function randClaim(uint256 randUser, uint256 randStakeId) public {}
-    function randBorrow(uint256 randUser, uint256 randAmount, uint256 randStakeId) public {}
-    function randLiquidate(uint256 randUser, address randDepositor, uint256 randStakeId) public {}
-    /// ----- HexOneVault -----
+    function randDeposit(uint256 randUser, uint256 randAmount, uint16 randDuration) public {
+        User user = users[randUser % users.length];
+        uint256 amount = (randAmount % initialMint) / 1000 + 1;
+        uint16 duration = randDuration % hexOneVault.MAX_DURATION();
+        duration = duration < hexOneVault.MIN_DURATION() ? hexOneVault.MIN_DURATION() : duration;
 
-    function randStake(uint256 randUser, uint256 randAmount, address randStakeToken) public {}
-    function randUnstake(uint256 randUser, uint256 randAmount, address randStakeToken) public {}
-    function randClaim(uint256 randUser, address randStakeToken) public {}
-    /// ----- HexOneVault -----
-    function randSacrifice(uint256 randUser, address randToken, uint256 randAmountIn, uint256 randAmountOutMin)
-        public
-    {}
-    function randClaimSacrifice(uint256 randUser) public {}
-    function randClaimAirdrop(uint256 randUser) public {}
+        (bool success, bytes memory data) =
+            user.proxy(address(hexOneVault), abi.encodeWithSignature("deposit(uint256,uint16)", amount, duration));
+        require(success);
+
+        (, uint256 stakeId) = abi.decode(data, (uint256, uint256));
+
+        userToStakeids[user].push(stakeId);
+    }
+
+    function randClaimVault(uint256 randUser, uint256 randStakeId) public {
+        User user = users[randUser % users.length];
+        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+        (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
+        require(success);
+    }
+
+    function randLiquidate(uint256 randUser, uint256 randDepositor, uint256 randStakeId) public {
+        User userLiquidator = users[randUser % users.length];
+        User userDepositor = users[randDepositor % users.length];
+        uint256 stakeId = userToStakeids[userDepositor][randStakeId % userToStakeids[userDepositor].length];
+
+        (bool success,) = userLiquidator.proxy(
+            address(hexOneVault),
+            abi.encodeWithSelector(hexOneVault.liquidate.selector, address(userDepositor), stakeId)
+        );
+        require(success);
+    }
+
+    // function randBorrow(uint256 randUser, uint256 randAmount, uint256 randStakeId) public {
+    //     User user = users[randUser % users.length];
+    //     uint256 amount = (randAmount % );
+    //     uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+    //     (bool success,) =
+    //         user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, amount, stakeId));
+    //     require(success);
+    // }
+
+    /// ----- HexOneStaking -----
+
+    function randStake(uint256 randUser, uint256 randAmount, uint256 randStakeToken) public {
+        User user = users[randUser % users.length];
+        address token = stakeTokens[randStakeToken % stakeTokens.length];
+        uint256 amount = (randAmount % initialMint) / 1000 + 1;
+
+        (bool success,) = user.proxy(
+            address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.stake.selector, token, amount)
+        );
+        require(success);
+    }
+
+    function randUnstake(uint256 randUser, uint256 randAmount, uint256 randStakeToken) public {
+        User user = users[randUser % users.length];
+        address token = stakeTokens[randStakeToken % stakeTokens.length];
+        uint256 amount = randAmount % hexOneStakingWrap.getPoolInfoStakeAmount(address(user), token);
+
+        (bool success,) = user.proxy(
+            address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.unstake.selector, token, amount)
+        );
+        require(success);
+    }
+
+    function randClaimStaking(uint256 randUser, uint256 randStakeToken) public {
+        User user = users[randUser % users.length];
+        address token = stakeTokens[randStakeToken % stakeTokens.length];
+
+        (bool success,) =
+            user.proxy(address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.claim.selector, token));
+        require(success);
+    }
+    /// ----- HexOneBootstrap -----
+
+    function randSacrifice(uint256 randUser, uint256 randToken, uint256 randAmountIn) public {
+        User user = users[randUser % users.length];
+        address token = sacrificeTokens[randToken % sacrificeTokens.length];
+        uint256 amount = (randAmountIn % initialMint) / 1000 + 1;
+
+        (bool success,) = user.proxy(
+            address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.sacrifice.selector, token, amount, 0)
+        );
+        require(success);
+    }
+
+    function randClaimSacrifice(uint256 randUser) public {
+        User user = users[randUser % users.length];
+        (bool success,) =
+            user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
+        require(success);
+    }
+
+    function randClaimAirdrop(uint256 randUser) public {
+        User user = users[randUser % users.length];
+        (bool success,) =
+            user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimAirdrop.selector));
+        require(success);
+    }
+
+    // admin calls
+    function randSetSacrificeStart() public {
+        hexOneBootstrap.setSacrificeStart(block.timestamp);
+    }
+
+    function randStartAirdrop() public {
+        hexOneBootstrap.startAidrop();
+    }
+
+    function randProcessSacrifice() public {
+        hexOneBootstrap.processSacrifice(0);
+    }
 
     // ---------------------- Invariants ---------------------- (Here we will be defining all our invariants)
 
