@@ -6,7 +6,7 @@ import "../../src/HexitToken.sol";
 import "../../src/HexOneBootstrap.sol";
 import "../../src/HexOneVault.sol";
 import "./mocks/ERC20Mock.sol";
-import "./mocks/hexOnePriceFeedMock.sol";
+import "./mocks/HexOnePriceFeedMock.sol";
 import "./mocks/DexRouterMock.sol";
 import "./mocks/DexFactoryMock.sol";
 import "./mocks/HexMockToken.sol";
@@ -264,6 +264,60 @@ contract HexOneProperties {
     /// @custom:invariant - HEXIT token emmission should never be more than the max emission.
     function hexitEmissionIntegrity() public {}
 
+    function hexOneStakingDailyRewardsCannotExceed1Percent() public {
+        uint256 rewardShareMinThreshold = 95;
+        uint256 rewardShareMaxThreshold = 105;
+
+        (uint256 hexitTotalAssets, uint256 hexitDistributedAssets,, uint256 hexitCurrentStakingDay,) =
+            hexOneStakingWrap.pools(address(hexit));
+        uint256 hexitPoolLastSync = hexitCurrentStakingDay;
+        (, uint256 hexitAmountToDistribute) = hexOneStakingWrap.poolHistory(hexitPoolLastSync, address(hexit));
+        uint256 hexitRewards = hexitAmountToDistribute;
+        uint256 hexitAvailable = hexitTotalAssets - hexitDistributedAssets;
+        uint256 hexitRewardShare = (hexitRewards * 10_000) / hexitAvailable;
+
+        // Pool hexPool = hexOneStakingWrap.pools(address(hexx));
+        // uint256 hexxPoolLastSync = hexPool.currentStakingDay;
+        // PoolHistory hexxPoolHistory = hexOneStakingWrap.poolHistory(hexxPoolLastSync, address(hexx));
+        // uint256 hexxRewards = hexxPoolHistory.amountToDistribute;
+        // uint256 hexxAvailable = hexPool.totalAssets - hexPool.distributedAssets;
+        // uint256 hexxRewardShare = (hexxRewards * 10_000) / hexxAvailable;
+
+        assert(hexitRewardShare >= rewardShareMinThreshold && hexitRewardShare <= rewardShareMaxThreshold);
+        // assert(hexxRewardShare >= rewardShareMinThreshold && hexxRewardShare <= rewardShareMaxThreshold);
+    }
+
+    // function hexOneStakingSharesToGiveAlwaysProportionalToIncreaseInBalance(
+    //     uint256 randAmount,
+    //     uint256 randStakeToken
+    // ) {
+    //     uint256 offset = 100;
+
+    //     address token = stakeTokens[randStakeToken % stakeTokens.length];
+    //     uint256 amount = (randAmount % initialMint) / 1000 + 1;
+    //     uint256 shares = calculateShares(token, amount);
+
+    //     uint256 tokenStakingBalance = hexOneStakingWrap.totalStakedAmount(token);
+    //     uint256 tokenBalanceIncreaseFactor = ((amount + tokenStakingBalance) * 10_000) / tokenStakingBalance;
+
+    //     Pool hexPool = hexOneStakingWrap.pools(address(hexx));
+    //     uint256 hexTotalShares = hexPool.totalShares;
+    //     uint256 hexSharesIncreaseFactor = ((shares + hexTotalShares) * 10_000) / hexTotalShares;
+
+    //     Pool hexitPool = hexOneStakingWrap.pools(address(hexit));
+    //     uint256 hexitTotalShares = hexitPool.totalShares;
+    //     uint256 hexitSharesIncreaseFactor = ((shares + hexitTotalShares) * 10_000) / hexitTotalShares;
+
+    //     assert(
+    //         tokenBalanceIncreaseFactor >= hexSharesIncreaseFactor - offset
+    //             && tokenBalanceIncreaseFactor <= hexSharesIncreaseFactor + offset
+    //     );
+    //     assert(
+    //         tokenBalanceIncreaseFactor >= hexitSharesIncreaseFactor - offset
+    //             && tokenBalanceIncreaseFactor <= hexitSharesIncreaseFactor + offset
+    //     );
+    // }
+
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
     function setPrices(address tokenIn, address tokenOut, uint256 r) public {
         routerMock.setRate(tokenIn, tokenOut, r);
@@ -272,5 +326,19 @@ contract HexOneProperties {
         uint256 rReversed = 10000 * 10000 / r;
         routerMock.setRate(tokenOut, tokenIn, rReversed);
         hexOnePriceFeedMock.setRate(tokenOut, tokenIn, rReversed);
+    }
+
+    function calculateShares(address _stakeToken, uint256 _amount) public returns (uint256) {
+        uint256 shares = (_amount * hexOneStakingWrap.stakeTokenWeights(_stakeToken)) / 1000;
+        return convertToShares(_stakeToken, shares);
+    }
+
+    function convertToShares(address _token, uint256 _amount) public returns (uint256) {
+        uint8 decimals = TokenUtils.expectDecimals(_token);
+        if (decimals >= 18) {
+            return _amount / (10 ** (decimals - 18));
+        } else {
+            return _amount * (10 ** (18 - decimals));
+        }
     }
 }
