@@ -1,8 +1,9 @@
-seqLen: 100
+seqLen: 10
 testLimit: 10000
 
 workers: 10
 coverage: true
+allowFFI: true
 corpusDir: "corpus"
 testMode: assertion
 deployer: "0x10000"
@@ -10,6 +11,10 @@ sender: ["0x10000", "0x20000", "0x30000"]
 coverageFormats: ["txt"]
 shrinkLimit: 500
 
+maxTimeDelay: 31449600 # 1 year
+
+maxBlockDelay: 3144960 # 1 year
+
 # Ignore helpers
 filterBlacklist: true
-filterFunctions: []
+filterFunctions: ["setPrice"]

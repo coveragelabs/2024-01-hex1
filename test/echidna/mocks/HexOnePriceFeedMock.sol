@@ -10,6 +10,10 @@ contract HexOnePriceFeedMock {
         rates[tokenIn][tokenOut] = r;
     }
 
+    function getRate(address tokenIn, address tokenOut) public returns (uint256) {
+        return rates[tokenIn][tokenOut];
+    }
+
     function update(address, address) external {}
 
     function consult(address tokenIn, uint256 amountIn, address tokenOut) external view returns (uint256 amountOut) {
