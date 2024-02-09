@@ -335,6 +335,19 @@ contract HexOneProperties {
         assert(totalHexoneUsersAmount == totalHexoneProtocolAmount);
     }
 
+    /// @custom:invariant - history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
+    function poolAmountStateIntegrity() public {
+        for (uint256 i = 0; i < stakeTokens.length; i++) {
+            (,,, uint256 currentStakingDay,) = hexOneStakingWrap.pools(address(stakeTokens[i]));
+            (,, uint256 totalShares,,) = hexOneStakingWrap.pools(address(stakeTokens[i]));
+            (, uint256 amountToDistribute) = hexOneStakingWrap.poolHistory(currentStakingDay, address(stakeTokens[i]));
+
+            if (totalShares == 0 || amountToDistribute == 0) {
+                assert(totalShares == amountToDistribute);
+            }
+        }
+    }
+
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
     function setPrices(address tokenIn, address tokenOut, uint256 r) public {
         routerMock.setRate(tokenIn, tokenOut, r);
