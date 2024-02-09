@@ -318,6 +318,23 @@ contract HexOneProperties {
     //     );
     // }
 
+    /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
+    function hexitLiquidationsIntegrity() public {
+        uint256 totalHexoneUsersAmount;
+        uint256 totalHexoneProtocolAmount;
+
+        for (uint256 i = 0; i < totalNbUsers; i++) {
+            (,, uint256 totalBorrowed) = hexOneVault.userInfos(address(users[i]));
+            totalHexoneProtocolAmount += totalBorrowed;
+        }
+
+        for (uint256 i = 0; i < totalNbUsers; i++) {
+            totalHexoneUsersAmount += hex1.balanceOf(address(users[i]));
+        }
+
+        assert(totalHexoneUsersAmount == totalHexoneProtocolAmount);
+    }
+
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
     function setPrices(address tokenIn, address tokenOut, uint256 r) public {
         routerMock.setRate(tokenIn, tokenOut, r);
