@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+import "../../lib/properties/contracts/util/Hevm.sol";
+
 import "../../src/HexOneStaking.sol";
 import "../../src/HexitToken.sol";
 import "../../src/HexOneBootstrap.sol";
@@ -31,6 +33,7 @@ contract HexOneProperties {
     mapping(User user => uint256[] stakeIds) userToStakeids;
     address[] public stakeTokens = new address[](3);
     address[] public sacrificeTokens = new address[](2);
+    address[] public tokens = new address[](4);
 
     // contracts
     HexitTokenWrap public hexit;
@@ -98,6 +101,11 @@ contract HexOneProperties {
         hexOneBootstrap.setBaseData(address(hexOnePriceFeedMock), address(hexOneStakingWrap), address(hexOneVault));
         hexOneBootstrap.setSacrificeTokens(sacrificeTokens, multipliers);
 
+        tokens.push(address(hex1));
+        tokens.push(address(hexit));
+        tokens.push(address(hexx));
+        tokens.push(address(dai));
+
         /// set initial prices 1 == 1
         setPrices(address(dai), address(hex1), 10_000); // 10000 == 1
         setPrices(address(dai), address(hexx), 10_000);
@@ -107,7 +115,6 @@ contract HexOneProperties {
         setPrices(address(hexit), address(hex1), 10_000);
 
         /// fund router swapper
-
         hexx.mint(address(routerMock), 1000000 ether);
         dai.mint(address(routerMock), 1000000 ether);
         hexit.mintAdmin(address(routerMock), 1000000 ether);
@@ -144,10 +151,13 @@ contract HexOneProperties {
     // --------------------- State updates --------------------- (Here we will be defining all state update functions)
 
     /// ----- HexOneVault -----
+    event LogUint(uint256);
+
     function randDeposit(uint256 randUser, uint256 randAmount, uint16 randDuration) public {
         User user = users[randUser % users.length];
         uint256 amount = (randAmount % initialMint) / 1000 + 1;
-        uint16 duration = randDuration % hexOneVault.MAX_DURATION();
+        //uint16 duration = randDuration % hexOneVault.MAX_DURATION();
+        uint16 duration = randDuration % 10;
         duration = duration < hexOneVault.MIN_DURATION() ? hexOneVault.MIN_DURATION() : duration;
 
         (bool success, bytes memory data) =
@@ -162,6 +172,10 @@ contract HexOneProperties {
     function randClaimVault(uint256 randUser, uint256 randStakeId) public {
         User user = users[randUser % users.length];
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+
+        // emit LogUint(IHexToken(hexx).currentDay());
+        // assert(false);
+
         (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
         require(success);
     }
@@ -178,14 +192,14 @@ contract HexOneProperties {
         require(success);
     }
 
-    // function randBorrow(uint256 randUser, uint256 randAmount, uint256 randStakeId) public {
-    //     User user = users[randUser % users.length];
-    //     uint256 amount = (randAmount % );
-    //     uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
-    //     (bool success,) =
-    //         user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, amount, stakeId));
-    //     require(success);
-    // }
+    function randBorrow(uint256 randUser, uint256 randAmount, uint256 randStakeId) public {
+        User user = users[randUser % users.length];
+        uint256 amount = (randAmount % 1 ether); // this can be improved
+        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+        (bool success,) =
+            user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, amount, stakeId));
+        require(success);
+    }
 
     /// ----- HexOneStaking -----
 
@@ -227,7 +241,8 @@ contract HexOneProperties {
         uint256 amount = (randAmountIn % initialMint) / 1000 + 1;
 
         (bool success,) = user.proxy(
-            address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.sacrifice.selector, token, amount, 0)
+            address(hexOneBootstrap),
+            abi.encodeWithSelector(hexOneBootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
         require(success);
     }
@@ -257,6 +272,21 @@ contract HexOneProperties {
 
     function randProcessSacrifice() public {
         hexOneBootstrap.processSacrifice(0);
+    }
+
+    /// ----- General state updates -----
+    function randSetPrices(uint256 randTokenIn, uint256 randTokenOut, int8 randRate) public {
+        address tokenIn = tokens[randTokenIn % tokens.length];
+        address tokenOut = tokens[randTokenOut % tokens.length];
+        require(tokenIn != tokenOut);
+        int256 r = int256(hexOnePriceFeedMock.getRate(tokenIn, tokenOut)) + (int256(randRate) / 2); // will add small jump in the price [-127, 127]
+        require(r > 0);
+
+        setPrices(tokenIn, tokenOut, uint256(r));
+    }
+
+    function randIncreaseTimestamp(uint8 randTs) public {
+        hevm.warp(block.timestamp + randTs * 1 days); // add between 1 day and 255 days to timestamps
     }
 
     // ---------------------- Invariants ---------------------- (Here we will be defining all our invariants)

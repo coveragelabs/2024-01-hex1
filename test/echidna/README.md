@@ -4,6 +4,12 @@
 
 Echidna is a program designed for fuzzing/property-based testing of Ethereum smart contracts. Please refer to the doc for [installation](https://github.com/crytic/echidna#installation).
 
+This lib need to be installed:
+
+```sh
+forge install --no-commit https://github.com/crytic/properties
+```
+
 Run with:
 
 ```sh
