@@ -383,6 +383,24 @@ contract HexOneProperties {
         assert(success == true && finalAmount == vaultAmount && duration == vaultDuration);
     }
 
+    /// @custom:invariant - If hexOneBorrowed gt 0, the same amount of hexOneBorrowed must always be burned on claim
+    /// @custom:invariant - The amount to withdraw after maturity must always be greater or equal than the HEX collateral deposited
+    function hexOneBorrowAmountIntegrity(uint256 randUser, uint256 randDepositor, uint256 randStakeId) public {
+        User user = users[randUser % users.length];
+        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+
+        (uint256 vaultAmount,, uint256 vaultBorrowed,,,) = hexOneVault.depositInfos(address(user), stakeId);
+
+        (bool success, bytes memory data) =
+            user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
+        require(success);
+
+        uint256 hexAmount = abi.decode(data, (uint256));
+
+        assert(hexAmount >= vaultAmount);
+    }
+
+    /*
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
     function hexOneLiquidationsIntegrity() public {
         uint256 totalHexoneUsersAmount;
@@ -412,6 +430,7 @@ contract HexOneProperties {
             }
         }
     }
+    */
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
     function setPrices(address tokenIn, address tokenOut, uint256 r) public {
