@@ -291,6 +291,7 @@ contract HexOneProperties {
 
     // ---------------------- Invariants ---------------------- (Here we will be defining all our invariants)
 
+    /*
     /// @custom:invariant - HEXIT token emmission should never be more than the max emission.
     function hexitEmissionIntegrity() public {}
 
@@ -347,6 +348,40 @@ contract HexOneProperties {
     //             && tokenBalanceIncreaseFactor <= hexitSharesIncreaseFactor + offset
     //     );
     // }
+    */
+
+    /// @custom:invariant - Vault deposit must never be claimed if maturity has not passed
+    function tryClaimVaultBeforeMaturity(uint256 randUser, uint256 randStakeId) public {
+        User user = users[randUser % users.length];
+        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+
+        (,,,, uint16 duration,) = hexOneVault.depositInfos(address(user), stakeId);
+        (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
+        assert(success == false && block.timestamp < duration * 86400);
+    }
+
+    /// @custom:invariant - Amount and duration on deposit must always be corresponding to the amount minus fee and corresponding set lock on the contract storage
+    /// @custom:invariant - The fee taken from deposits must always be 5%
+    function hexOneDepositAmountDurationIntegrity(uint256 randUser, uint256 randAmount, uint16 randDuration) public {
+        User user = users[randUser % users.length];
+        uint256 amount = (randAmount % initialMint) / 1000 + 1;
+        uint16 duration = randDuration % 10;
+        duration = duration < hexOneVault.MIN_DURATION() ? hexOneVault.MIN_DURATION() : duration;
+        uint16 fee = 50;
+        uint16 fixed_point = 1000;
+
+        uint256 finalAmount = amount - ((amount * fee) / fixed_point);
+
+        (bool success, bytes memory data) =
+            user.proxy(address(hexOneVault), abi.encodeWithSignature("deposit(uint256,uint16)", amount, duration));
+        require(success);
+
+        (, uint256 stakeId) = abi.decode(data, (uint256, uint256));
+
+        (uint256 vaultAmount,,,, uint16 vaultDuration,) = hexOneVault.depositInfos(address(user), stakeId);
+
+        assert(success == true && finalAmount == vaultAmount && duration == vaultDuration);
+    }
 
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
     function hexOneLiquidationsIntegrity() public {
@@ -376,34 +411,6 @@ contract HexOneProperties {
                 assert(totalShares == amountToDistribute);
             }
         }
-    }
-
-    /// @custom:invariant - Vault deposit must never be claimed if maturity has not passed
-    function tryClaimVaultBeforeMaturity(uint256 randUser, uint256 randStakeId) public {
-        User user = users[randUser % users.length];
-        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
-
-        (,,,, uint16 duration,) = hexOneVault.depositInfos(address(user), stakeId);
-        (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
-        assert(success == false && block.timestamp < duration * 86400);
-    }
-
-    /// @custom:invariant - Amount and duration on deposit must always be corresponding to the amount of HEX1 minted and corresponding set lock period on deposit
-    function hexOneDepositAmountDurationIntegrity(uint256 randUser, uint256 randAmount, uint16 randDuration) public {
-        User user = users[randUser % users.length];
-        uint256 amount = (randAmount % initialMint) / 1000 + 1;
-        uint16 duration = randDuration % 10;
-        duration = duration < hexOneVault.MIN_DURATION() ? hexOneVault.MIN_DURATION() : duration;
-
-        (bool success, bytes memory data) =
-            user.proxy(address(hexOneVault), abi.encodeWithSignature("deposit(uint256,uint16)", amount, duration));
-        require(success);
-
-        (, uint256 stakeId) = abi.decode(data, (uint256, uint256));
-
-        (uint256 vaultAmount,,,, uint16 vaultDuration,) = hexOneVault.depositInfos(address(user), stakeId);
-
-        assert(success == true && amount == vaultAmount && duration == vaultDuration);
     }
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
