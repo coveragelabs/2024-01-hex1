@@ -188,7 +188,10 @@ contract HexOneBootstrap is IHexOneBootstrap, Ownable {
         if (block.timestamp < airdropStart) revert AirdropHasNotStartedYet(block.timestamp);
         if (block.timestamp >= airdropEnd) revert AirdropAlreadyEnded(block.timestamp);
 
-        return ((block.timestamp) - airdropStart / 1 days) + 1;
+        // @audit-info Fixed by the client
+        return ((block.timestamp - airdropStart) / 1 days) + 1;
+        // @audit-info Old version
+        // return ((block.timestamp) - airdropStart / 1 days) + 1;
     }
 
     /// @dev allows user to participate in the sacrifice.
@@ -355,7 +358,7 @@ contract HexOneBootstrap is IHexOneBootstrap, Ownable {
     }
 
     /// @dev mints 33% on top of the total hexit minted during sacrifice to the staking
-    /// contract and an addittional 
+    /// contract and an addittional
     /// @notice can only be called by the owner of the contract.
     function startAidrop() external onlyOwner {
         if (block.timestamp < sacrificeClaimPeriodEnd) revert SacrificeClaimPeriodHasNotFinished(block.timestamp);
@@ -502,7 +505,10 @@ contract HexOneBootstrap is IHexOneBootstrap, Ownable {
 
         baseHexit = AIRDROP_HEXIT_INIT_AMOUNT;
         for (uint256 i = 2; i <= currentAirdropDay; ++i) {
-            baseHexit = (baseHexit * SACRIFICE_DECREASE_FACTOR) / FIXED_POINT;
+            // @audit-info Fixed by the client
+            baseHexit = (baseHexit * AIRDROP_DECREASE_FACTOR) / FIXED_POINT;
+            // @audit-info Old version
+            // baseHexit = (baseHexit * SACRIFICE_DECREASE_FACTOR) / FIXED_POINT;
         }
     }
 

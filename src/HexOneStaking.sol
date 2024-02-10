@@ -317,16 +317,36 @@ contract HexOneStaking is Ownable, ReentrancyGuard, IHexOneStaking {
             // get the pool rewards for each day since it was last updated
             PoolHistory storage history = poolHistory[currentStakingDay][_poolToken];
 
+            // @audit-info Fixed by the client
             // store the total shares emitted by the pool at a specific day
             history.totalShares = pool.totalShares;
-
-            // calculate the amount of pool token to distribute for a specific staking day
             uint256 availableAssets = pool.totalAssets - pool.distributedAssets;
-            uint256 amountToDistribute = (availableAssets * pool.distributionRate) / FIXED_POINT;
-            history.amountToDistribute = amountToDistribute;
+            history.availableAssets = availableAssets;
 
-            // increment the distributedAssets by the pool
-            pool.distributedAssets += amountToDistribute;
+            if (pool.totalShares != 0) {
+                // calculate the amount of pool token to distribute for a specific staking day
+                uint256 amountToDistribute = (availableAssets * pool.distributionRate) / FIXED_POINT;
+                history.amountToDistribute = amountToDistribute;
+
+                // increment the distributedAssets by the pool
+                pool.distributedAssets += amountToDistribute;
+            } else {
+                history.amountToDistribute = 0;
+            }
+            // @audit-info Fixed by the client - END
+
+            // @audit-info Old version
+            // // store the total shares emitted by the pool at a specific day
+            // history.totalShares = pool.totalShares;
+
+            // // calculate the amount of pool token to distribute for a specific staking day
+            // uint256 availableAssets = pool.totalAssets - pool.distributedAssets;
+            // uint256 amountToDistribute = (availableAssets * pool.distributionRate) / FIXED_POINT;
+            // history.amountToDistribute = amountToDistribute;
+
+            // // increment the distributedAssets by the pool
+            // pool.distributedAssets += amountToDistribute;
+            // @audit-info Old version - END
 
             // increment the staking day in which the pool rewards were last updated
             currentStakingDay++;
