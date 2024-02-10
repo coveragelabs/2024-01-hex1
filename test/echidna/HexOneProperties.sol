@@ -197,7 +197,7 @@ contract HexOneProperties {
         uint256 amount = (randAmount % 1 ether); // this can be improved
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
         (bool success,) =
-            user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, amount, stakeId));
+            user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, amount, stakeId));
         require(success);
     }
 
@@ -350,6 +350,8 @@ contract HexOneProperties {
     // }
     */
 
+    /// ----- HexOneVault -----
+
     /// @custom:invariant - Vault deposit must never be claimed if maturity has not passed
     function tryClaimVaultBeforeMaturity(uint256 randUser, uint256 randStakeId) public {
         User user = users[randUser % users.length];
@@ -402,6 +404,18 @@ contract HexOneProperties {
         assert(hexAmount >= vaultAmount);
         assert(vaultBorrowedAfter == 0 && userHexoneBalanceAfter == 0);
     }
+
+    /*
+    /// @custom:invariant - Must only be able to mint more HEXONE with the same HEX collateral if the HEX price increases
+    function tryMintMorePriceIncrease(uint256 randUser, uint256 randAmount, uint256 randStakeId) public {
+        User user = users[randUser % users.length];
+        uint256 amount = (randAmount % 1 ether); // this can be improved
+        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+        (bool success,) =
+            user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, amount, stakeId));
+        require(success);
+    }
+    */
 
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
     function hexOneLiquidationsIntegrity() public {
