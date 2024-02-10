@@ -168,6 +168,7 @@ contract HexOneBootstrap is IHexOneBootstrap, Ownable {
     /// @notice can only be called by the protocol owner and can not be a timestamp in the past.
     /// @param _sacrificeStart timestamp in which the sacrifice is starting.
     function setSacrificeStart(uint256 _sacrificeStart) external onlyOwner {
+        if (sacrificeStart != 0) revert SacrificeStartAlreadySet(); // @audit-info Fixed by the client
         if (_sacrificeStart < block.timestamp) revert InvalidTimestamp(block.timestamp);
         sacrificeStart = _sacrificeStart;
         sacrificeEnd = _sacrificeStart + SACRIFICE_DURATION;
