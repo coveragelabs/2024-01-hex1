@@ -349,7 +349,7 @@ contract HexOneProperties {
     // }
 
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
-    function hexitLiquidationsIntegrity() public {
+    function hexOneLiquidationsIntegrity() public {
         uint256 totalHexoneUsersAmount;
         uint256 totalHexoneProtocolAmount;
 
