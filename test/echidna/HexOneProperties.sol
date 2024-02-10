@@ -388,6 +388,24 @@ contract HexOneProperties {
         assert(success == false && block.timestamp < duration * 86400);
     }
 
+    /// @custom:invariant - Amount and duration on deposit must always be corresponding to the amount of HEX1 minted and corresponding set lock period on deposit
+    function hexOneDepositAmountDurationIntegrity(uint256 randUser, uint256 randAmount, uint16 randDuration) public {
+        User user = users[randUser % users.length];
+        uint256 amount = (randAmount % initialMint) / 1000 + 1;
+        uint16 duration = randDuration % 10;
+        duration = duration < hexOneVault.MIN_DURATION() ? hexOneVault.MIN_DURATION() : duration;
+
+        (bool success, bytes memory data) =
+            user.proxy(address(hexOneVault), abi.encodeWithSignature("deposit(uint256,uint16)", amount, duration));
+        require(success);
+
+        (, uint256 stakeId) = abi.decode(data, (uint256, uint256));
+
+        (uint256 vaultAmount,,,, uint16 vaultDuration,) = hexOneVault.depositInfos(address(user), stakeId);
+
+        assert(success == true && amount == vaultAmount && duration == vaultDuration);
+    }
+
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
     function setPrices(address tokenIn, address tokenOut, uint256 r) public {
         routerMock.setRate(tokenIn, tokenOut, r);
