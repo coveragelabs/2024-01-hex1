@@ -365,7 +365,7 @@ contract HexOneProperties {
         assert(totalHexoneUsersAmount == totalHexoneProtocolAmount);
     }
 
-    /// @custom:invariant - history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
+    /// @custom:invariant - staking history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
     function poolAmountStateIntegrity() public {
         for (uint256 i = 0; i < stakeTokens.length; i++) {
             (,,, uint256 currentStakingDay,) = hexOneStakingWrap.pools(address(stakeTokens[i]));
@@ -376,6 +376,16 @@ contract HexOneProperties {
                 assert(totalShares == amountToDistribute);
             }
         }
+    }
+
+    /// @custom:invariant - Vault deposit must never be claimed if maturity has not passed
+    function tryClaimVaultBeforeMaturity(uint256 randUser, uint256 randStakeId) public {
+        User user = users[randUser % users.length];
+        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+
+        (,,,, uint16 duration,) = hexOneVault.depositInfos(address(user), stakeId);
+        (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
+        assert(success == false && block.timestamp < duration * 86400);
     }
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
