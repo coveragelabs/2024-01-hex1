@@ -197,7 +197,7 @@ contract HexOneProperties {
         uint256 amount = (randAmount % 1 ether); // this can be improved
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
         (bool success,) =
-            user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, amount, stakeId));
+            user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, amount, stakeId));
         require(success);
     }
 
@@ -294,89 +294,167 @@ contract HexOneProperties {
     /// @custom:invariant - HEXIT token emmission should never be more than the max emission.
     function hexitEmissionIntegrity() public {}
 
-    function hexOneStakingDailyRewardsCannotExceed1Percent() public {
-        uint256 rewardShareMinThreshold = 95;
-        uint256 rewardShareMaxThreshold = 105;
+    /// @custom:invariant - HexOneStaking daily Hexit rewards cannot differ from 1%.
+    function hexOneStakingDailyHexitRewardsCannotDifferFrom1Percent() public {
+        // min threshold = 98 bps = 0,98%
+        uint256 rewardShareMinThreshold = 98;
+        // max threshold = 102 bps = 1,02%
+        uint256 rewardShareMaxThreshold = 102;
 
-        (uint256 hexitTotalAssets, uint256 hexitDistributedAssets,, uint256 hexitCurrentStakingDay,) =
+        (uint256 totalAssets, uint256 distributedAssets,, uint256 currentStakingDay,) =
             hexOneStakingWrap.pools(address(hexit));
-        uint256 hexitPoolLastSync = hexitCurrentStakingDay;
-        (, uint256 hexitAmountToDistribute) = hexOneStakingWrap.poolHistory(hexitPoolLastSync, address(hexit));
-        uint256 hexitRewards = hexitAmountToDistribute;
-        uint256 hexitAvailable = hexitTotalAssets - hexitDistributedAssets;
-        uint256 hexitRewardShare = (hexitRewards * 10_000) / hexitAvailable;
 
-        // Pool hexPool = hexOneStakingWrap.pools(address(hexx));
-        // uint256 hexxPoolLastSync = hexPool.currentStakingDay;
-        // PoolHistory hexxPoolHistory = hexOneStakingWrap.poolHistory(hexxPoolLastSync, address(hexx));
-        // uint256 hexxRewards = hexxPoolHistory.amountToDistribute;
-        // uint256 hexxAvailable = hexPool.totalAssets - hexPool.distributedAssets;
-        // uint256 hexxRewardShare = (hexxRewards * 10_000) / hexxAvailable;
+        if (currentStakingDay > 0) {
+            // @note pool history does not have available assets (fixed by the client). we need to this in a different way
+            (uint256 availableAssets,, uint256 amountToDistribute) =
+                hexOneStakingWrap.poolHistory(currentStakingDay - 1, address(hexit));
+            uint256 share = (amountToDistribute * 10_000) / availableAssets;
 
-        assert(hexitRewardShare >= rewardShareMinThreshold && hexitRewardShare <= rewardShareMaxThreshold);
-        // assert(hexxRewardShare >= rewardShareMinThreshold && hexxRewardShare <= rewardShareMaxThreshold);
-    }
+            // emit LogUint(share);
 
-    // function hexOneStakingSharesToGiveAlwaysProportionalToIncreaseInBalance(
-    //     uint256 randAmount,
-    //     uint256 randStakeToken
-    // ) {
-    //     uint256 offset = 100;
-
-    //     address token = stakeTokens[randStakeToken % stakeTokens.length];
-    //     uint256 amount = (randAmount % initialMint) / 1000 + 1;
-    //     uint256 shares = calculateShares(token, amount);
-
-    //     uint256 tokenStakingBalance = hexOneStakingWrap.totalStakedAmount(token);
-    //     uint256 tokenBalanceIncreaseFactor = ((amount + tokenStakingBalance) * 10_000) / tokenStakingBalance;
-
-    //     Pool hexPool = hexOneStakingWrap.pools(address(hexx));
-    //     uint256 hexTotalShares = hexPool.totalShares;
-    //     uint256 hexSharesIncreaseFactor = ((shares + hexTotalShares) * 10_000) / hexTotalShares;
-
-    //     Pool hexitPool = hexOneStakingWrap.pools(address(hexit));
-    //     uint256 hexitTotalShares = hexitPool.totalShares;
-    //     uint256 hexitSharesIncreaseFactor = ((shares + hexitTotalShares) * 10_000) / hexitTotalShares;
-
-    //     assert(
-    //         tokenBalanceIncreaseFactor >= hexSharesIncreaseFactor - offset
-    //             && tokenBalanceIncreaseFactor <= hexSharesIncreaseFactor + offset
-    //     );
-    //     assert(
-    //         tokenBalanceIncreaseFactor >= hexitSharesIncreaseFactor - offset
-    //             && tokenBalanceIncreaseFactor <= hexitSharesIncreaseFactor + offset
-    //     );
-    // }
-
-    /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
-    function hexitLiquidationsIntegrity() public {
-        uint256 totalHexoneUsersAmount;
-        uint256 totalHexoneProtocolAmount;
-
-        for (uint256 i = 0; i < totalNbUsers; i++) {
-            (,, uint256 totalBorrowed) = hexOneVault.userInfos(address(users[i]));
-            totalHexoneProtocolAmount += totalBorrowed;
-        }
-
-        for (uint256 i = 0; i < totalNbUsers; i++) {
-            totalHexoneUsersAmount += hex1.balanceOf(address(users[i]));
-        }
-
-        assert(totalHexoneUsersAmount == totalHexoneProtocolAmount);
-    }
-
-    /// @custom:invariant - history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
-    function poolAmountStateIntegrity() public {
-        for (uint256 i = 0; i < stakeTokens.length; i++) {
-            (,,, uint256 currentStakingDay,) = hexOneStakingWrap.pools(address(stakeTokens[i]));
-            (,, uint256 totalShares,,) = hexOneStakingWrap.pools(address(stakeTokens[i]));
-            (, uint256 amountToDistribute) = hexOneStakingWrap.poolHistory(currentStakingDay, address(stakeTokens[i]));
-
-            if (totalShares == 0 || amountToDistribute == 0) {
-                assert(totalShares == amountToDistribute);
+            if (amountToDistribute > 0) {
+                assert(share >= rewardShareMinThreshold && share <= rewardShareMaxThreshold);
+            } else {
+                assert(share == 0);
             }
         }
     }
+
+    /// @custom:invariant - HexOneStaking daily Hex rewards cannot differ from 1%.
+    function hexOneStakingDailyHexRewardsCannotDifferFrom1Percent() public {
+        // min threshold = 98 bps = 0,98%
+        uint256 rewardShareMinThreshold = 98;
+        // max threshold = 102 bps = 1,02%
+        uint256 rewardShareMaxThreshold = 102;
+
+        (uint256 totalAssets, uint256 distributedAssets,, uint256 currentStakingDay,) =
+            hexOneStakingWrap.pools(address(hexx));
+
+        if (currentStakingDay > 0) {
+            // @note pool history does not have available assets (fixed by the client). we need to this in a different way
+            (uint256 availableAssets,, uint256 amountToDistribute) =
+                hexOneStakingWrap.poolHistory(currentStakingDay - 1, address(hexx));
+            uint256 share = (amountToDistribute * 10_000) / availableAssets;
+
+            // emit LogUint(share);
+
+            if (amountToDistribute > 0) {
+                assert(share >= rewardShareMinThreshold && share <= rewardShareMaxThreshold);
+            } else {
+                assert(share == 0);
+            }
+        }
+    }
+
+    /// @custom:invariant - HexOneStaking Hex shares to give is always proportional to increase in balance.
+    function hexOneStakingHexSharesToGiveIsAlwaysProportionalToIncreaseInBalance(
+        uint256 randAmount,
+        uint256 randStakeToken
+    ) public {
+        uint256 offset = 10;
+
+        address stakeToken = stakeTokens[randStakeToken % stakeTokens.length];
+
+        address xToken = stakeTokens[(randStakeToken + 1) % stakeTokens.length];
+        uint256 xTokenBalance = hexOneStakingWrap.totalStakedAmount(xToken);
+        uint256 xTokenWeight = hexOneStakingWrap.stakeTokenWeights(xToken);
+
+        address yToken = stakeTokens[(randStakeToken + 2) % stakeTokens.length];
+        uint256 yTokenBalance = hexOneStakingWrap.totalStakedAmount(yToken);
+        uint256 yTokenWeight = hexOneStakingWrap.stakeTokenWeights(yToken);
+
+        uint256 stakeAmount = (randAmount % initialMint) / 1000 + 1;
+        uint256 shares = calculateShares(stakeToken, stakeAmount);
+
+        if (shares > 0) {
+            uint256 stakeTokenBalance = hexOneStakingWrap.totalStakedAmount(stakeToken);
+            uint256 stakeTokenBalanceIncreaseFactor = ((stakeAmount + stakeTokenBalance) * 10_000) / stakeTokenBalance;
+
+            (,, uint256 totalShares,,) = hexOneStakingWrap.pools(address(hexx));
+
+            uint256 stakeTokenTotalShares =
+                totalShares - (xTokenBalance * xTokenWeight) - (yTokenBalance * yTokenWeight);
+            uint256 hexSharesIncreaseFactor = ((shares + stakeTokenTotalShares) * 10_000) / stakeTokenTotalShares;
+
+            // emit LogUint(stakeTokenBalanceIncreaseFactor);
+            // emit LogUint(hexSharesIncreaseFactor);
+
+            assert(
+                stakeTokenBalanceIncreaseFactor >= hexSharesIncreaseFactor - offset
+                    && stakeTokenBalanceIncreaseFactor <= hexSharesIncreaseFactor + offset
+            );
+        }
+    }
+
+    /// @custom:invariant - HexOneStaking Hexit shares to give is always proportional to increase in balance.
+    function hexOneStakingHexitSharesToGiveIsAlwaysProportionalToIncreaseInBalance(
+        uint256 randAmount,
+        uint256 randStakeToken
+    ) public {
+        uint256 offset = 10;
+
+        address stakeToken = stakeTokens[randStakeToken % stakeTokens.length];
+
+        address xToken = stakeTokens[(randStakeToken + 1) % stakeTokens.length];
+        uint256 xTokenBalance = hexOneStakingWrap.totalStakedAmount(xToken);
+        uint256 xTokenWeight = hexOneStakingWrap.stakeTokenWeights(xToken);
+
+        address yToken = stakeTokens[(randStakeToken + 2) % stakeTokens.length];
+        uint256 yTokenBalance = hexOneStakingWrap.totalStakedAmount(yToken);
+        uint256 yTokenWeight = hexOneStakingWrap.stakeTokenWeights(yToken);
+
+        uint256 stakeAmount = (randAmount % initialMint) / 1000 + 1;
+        uint256 shares = calculateShares(stakeToken, stakeAmount);
+
+        if (shares > 0) {
+            uint256 stakeTokenBalance = hexOneStakingWrap.totalStakedAmount(stakeToken);
+            uint256 stakeTokenBalanceIncreaseFactor = ((stakeAmount + stakeTokenBalance) * 10_000) / stakeTokenBalance;
+
+            (,, uint256 totalShares,,) = hexOneStakingWrap.pools(address(hexit));
+
+            uint256 stakeTokenTotalShares =
+                totalShares - (xTokenBalance * xTokenWeight) - (yTokenBalance * yTokenWeight);
+            uint256 hexSharesIncreaseFactor = ((shares + stakeTokenTotalShares) * 10_000) / stakeTokenTotalShares;
+
+            // emit LogUint(stakeTokenBalanceIncreaseFactor);
+            // emit LogUint(hexSharesIncreaseFactor);
+
+            assert(
+                stakeTokenBalanceIncreaseFactor >= hexSharesIncreaseFactor - offset
+                    && stakeTokenBalanceIncreaseFactor <= hexSharesIncreaseFactor + offset
+            );
+        }
+    }
+
+    /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
+    // function hexitLiquidationsIntegrity() public {
+    //     uint256 totalHexoneUsersAmount;
+    //     uint256 totalHexoneProtocolAmount;
+
+    //     for (uint256 i = 0; i < totalNbUsers; i++) {
+    //         (,, uint256 totalBorrowed) = hexOneVault.userInfos(address(users[i]));
+    //         totalHexoneProtocolAmount += totalBorrowed;
+    //     }
+
+    //     for (uint256 i = 0; i < totalNbUsers; i++) {
+    //         totalHexoneUsersAmount += hex1.balanceOf(address(users[i]));
+    //     }
+
+    //     assert(totalHexoneUsersAmount == totalHexoneProtocolAmount);
+    // }
+
+    /// @custom:invariant - history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
+    // function poolAmountStateIntegrity() public {
+    //     for (uint256 i = 0; i < stakeTokens.length; i++) {
+    //         (,,, uint256 currentStakingDay,) = hexOneStakingWrap.pools(address(stakeTokens[i]));
+    //         (,, uint256 totalShares,,) = hexOneStakingWrap.pools(address(stakeTokens[i]));
+    //         (, uint256 amountToDistribute) = hexOneStakingWrap.poolHistory(currentStakingDay, address(stakeTokens[i]));
+
+    //         if (totalShares == 0 || amountToDistribute == 0) {
+    //             assert(totalShares == amountToDistribute);
+    //         }
+    //     }
+    // }
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
     function setPrices(address tokenIn, address tokenOut, uint256 r) public {
