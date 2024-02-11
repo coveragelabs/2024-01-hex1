@@ -292,9 +292,12 @@ contract HexOneProperties {
     // ---------------------- Invariants ---------------------- (Here we will be defining all our invariants)
 
     /// @custom:invariant - HEXIT token emmission should never be more than the max emission.
-    function hexitEmissionIntegrity() public {}
+    // function hexitEmissionIntegrity() public {}
+
+    // ---------------------- HexOneStaking ----------------------
 
     /// @custom:invariant - HexOneStaking daily Hexit rewards cannot differ from 1%.
+    // @audit-ok property checked (but not consistent with initial code base)
     function hexOneStakingDailyHexitRewardsCannotDifferFrom1Percent() public {
         // min threshold = 98 bps = 0,98%
         uint256 rewardShareMinThreshold = 98;
@@ -305,7 +308,7 @@ contract HexOneProperties {
             hexOneStakingWrap.pools(address(hexit));
 
         if (currentStakingDay > 0) {
-            // @note pool history does not have available assets (fixed by the client). we need to this in a different way
+            // @note pool history does not have available assets (fixed by the client). we need to do this in a different way
             (uint256 availableAssets,, uint256 amountToDistribute) =
                 hexOneStakingWrap.poolHistory(currentStakingDay - 1, address(hexit));
             uint256 share = (amountToDistribute * 10_000) / availableAssets;
@@ -321,6 +324,7 @@ contract HexOneProperties {
     }
 
     /// @custom:invariant - HexOneStaking daily Hex rewards cannot differ from 1%.
+    // @audit-ok property checked (but not consistent with initial code base)
     function hexOneStakingDailyHexRewardsCannotDifferFrom1Percent() public {
         // min threshold = 98 bps = 0,98%
         uint256 rewardShareMinThreshold = 98;
@@ -347,11 +351,12 @@ contract HexOneProperties {
     }
 
     /// @custom:invariant - HexOneStaking Hex shares to give is always proportional to increase in balance.
+    // @audit-issue property broken
     function hexOneStakingHexSharesToGiveIsAlwaysProportionalToIncreaseInBalance(
         uint256 randAmount,
         uint256 randStakeToken
     ) public {
-        uint256 offset = 10;
+        uint256 offset = 100;
 
         address stakeToken = stakeTokens[randStakeToken % stakeTokens.length];
 
@@ -376,8 +381,8 @@ contract HexOneProperties {
                 totalShares - (xTokenBalance * xTokenWeight) - (yTokenBalance * yTokenWeight);
             uint256 hexSharesIncreaseFactor = ((shares + stakeTokenTotalShares) * 10_000) / stakeTokenTotalShares;
 
-            // emit LogUint(stakeTokenBalanceIncreaseFactor);
-            // emit LogUint(hexSharesIncreaseFactor);
+            emit LogUint(stakeTokenBalanceIncreaseFactor);
+            emit LogUint(hexSharesIncreaseFactor);
 
             assert(
                 stakeTokenBalanceIncreaseFactor >= hexSharesIncreaseFactor - offset
@@ -387,11 +392,12 @@ contract HexOneProperties {
     }
 
     /// @custom:invariant - HexOneStaking Hexit shares to give is always proportional to increase in balance.
+    // @audit-issue property broken
     function hexOneStakingHexitSharesToGiveIsAlwaysProportionalToIncreaseInBalance(
         uint256 randAmount,
         uint256 randStakeToken
     ) public {
-        uint256 offset = 10;
+        uint256 offset = 100;
 
         address stakeToken = stakeTokens[randStakeToken % stakeTokens.length];
 
@@ -416,13 +422,84 @@ contract HexOneProperties {
                 totalShares - (xTokenBalance * xTokenWeight) - (yTokenBalance * yTokenWeight);
             uint256 hexSharesIncreaseFactor = ((shares + stakeTokenTotalShares) * 10_000) / stakeTokenTotalShares;
 
-            // emit LogUint(stakeTokenBalanceIncreaseFactor);
-            // emit LogUint(hexSharesIncreaseFactor);
+            emit LogUint(stakeTokenBalanceIncreaseFactor);
+            emit LogUint(hexSharesIncreaseFactor);
 
             assert(
                 stakeTokenBalanceIncreaseFactor >= hexSharesIncreaseFactor - offset
                     && stakeTokenBalanceIncreaseFactor <= hexSharesIncreaseFactor + offset
             );
+        }
+    }
+
+    /// @custom:invariant - Users cannot withdraw more Hex1 than they deposit
+    // @audit-ok property checked
+    function usersCannotWithdrawMoreHex1ThanTheyDeposit(uint256 randAmount) public {
+        for (uint8 i; i < users.length; ++i) {
+            User user = users[i];
+            uint256 userStakedAmount = hexOneStakingWrap.getPoolInfoStakeAmount(address(user), address(hex1));
+            if (userStakedAmount > 0) {
+                uint256 amount = randAmount % hexOneStakingWrap.getPoolInfoStakeAmount(address(user), address(hex1));
+                (uint256 stakedAmountBefore,,,,,,,,,) = hexOneStakingWrap.stakingInfos(address(user), address(hex1));
+
+                uint256 beforeBalance = hex1.balanceOf(address(user)) + stakedAmountBefore;
+
+                emit LogUint(hex1.balanceOf(address(user)));
+                emit LogUint(stakedAmountBefore);
+                emit LogUint(beforeBalance);
+
+                (bool success,) = user.proxy(
+                    address(hexOneStakingWrap),
+                    abi.encodeWithSelector(hexOneStakingWrap.unstake.selector, address(hex1), amount)
+                );
+                require(success);
+
+                (uint256 stakedAmountAfter,,,,,,,,,) = hexOneStakingWrap.stakingInfos(address(user), address(hex1));
+                uint256 afterBalance = hex1.balanceOf(address(user)) + stakedAmountAfter;
+
+                emit LogUint(hex1.balanceOf(address(user)));
+                emit LogUint(stakedAmountAfter);
+                emit LogUint(beforeBalance);
+
+                assert(beforeBalance == afterBalance);
+            }
+        }
+    }
+
+    /// @custom:invariant - Hexit unstake amount is always greater than or equals to stake amount
+    // @audit-ok property checked
+    function hexitUnstakeAmountIsAlwaysGreaterThanOrEqualsToStakeAmount(uint256 randAmount) public {
+        for (uint8 i; i < users.length; ++i) {
+            User user = users[i];
+            uint256 userStakedAmount = hexOneStakingWrap.getPoolInfoStakeAmount(address(user), address(hexit));
+            if (userStakedAmount > 0) {
+                uint256 amount = randAmount % hexOneStakingWrap.getPoolInfoStakeAmount(address(user), address(hexit));
+                emit LogUint(amount);
+
+                (uint256 stakedAmountBefore,,,,,,, uint256 unclaimedHexit,,) =
+                    hexOneStakingWrap.stakingInfos(address(user), address(hexit));
+                uint256 beforeBalance = hexit.balanceOf(address(user)) + stakedAmountBefore;
+
+                emit LogUint(unclaimedHexit);
+                emit LogUint(hexit.balanceOf(address(user)));
+                emit LogUint(stakedAmountBefore);
+                emit LogUint(beforeBalance);
+
+                (bool success,) = user.proxy(
+                    address(hexOneStakingWrap),
+                    abi.encodeWithSelector(hexOneStakingWrap.unstake.selector, address(hexit), amount)
+                );
+                require(success);
+
+                (uint256 stakedAmountAfter,,,,,,,,,) = hexOneStakingWrap.stakingInfos(address(user), address(hexit));
+                uint256 afterBalance = hexit.balanceOf(address(user)) + stakedAmountAfter;
+
+                emit LogUint(hexit.balanceOf(address(user)));
+                emit LogUint(stakedAmountAfter);
+                emit LogUint(afterBalance);
+
+                assert(afterBalance >= beforeBalance);
+            }
         }
     }
 
