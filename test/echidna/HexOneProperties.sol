@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "../../lib/properties/contracts/util/Hevm.sol";
+import "../../lib/properties/contracts/util/PropertiesHelper.sol";
 
 import "../../src/HexOneStaking.sol";
 import "../../src/HexitToken.sol";
@@ -26,7 +27,7 @@ contract User {
     }
 }
 
-contract HexOneProperties {
+contract HexOneProperties is PropertiesAsserts {
     //init mints
     uint256 public initialMintHex;
     uint256 public initialMintToken;
@@ -181,11 +182,9 @@ contract HexOneProperties {
 
     function randDeposit(uint256 randUser, uint256 randAmount, uint16 randDuration) public {
         User user = users[randUser % users.length];
-        uint256 amount = (randAmount % initialMintHex) / 1000 + 1; // check for bound cheatcode, do that instead
 
-        //uint16 duration = randDuration % hexOneVault.MAX_DURATION();
-        uint16 duration = randDuration % 10;
-        duration = duration < hexOneVault.MIN_DURATION() ? hexOneVault.MIN_DURATION() : duration; // change to bound
+        uint256 amount = clampBetween(randAmount, 1, initialMintHex / 4);
+        uint16 duration = uint16(clampBetween(randDuration, hexOneVault.MIN_DURATION(), hexOneVault.MAX_DURATION()));
 
         (bool success, bytes memory data) =
             user.proxy(address(hexOneVault), abi.encodeWithSignature("deposit(uint256,uint16)", amount, duration));
@@ -198,7 +197,7 @@ contract HexOneProperties {
 
     function randClaimVault(uint256 randUser, uint256 randStakeId) public {
         User user = users[randUser % users.length];
-        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length]; // go back here
 
         (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
         require(success);
@@ -207,7 +206,8 @@ contract HexOneProperties {
     function randLiquidate(uint256 randUser, uint256 randDepositor, uint256 randStakeId) public {
         User userLiquidator = users[randUser % users.length];
         User userDepositor = users[randDepositor % users.length];
-        uint256 stakeId = userToStakeids[userDepositor][randStakeId % userToStakeids[userDepositor].length];
+
+        uint256 stakeId = userToStakeids[userDepositor][randStakeId % userToStakeids[userDepositor].length]; // go back here
 
         (bool success,) = userLiquidator.proxy(
             address(hexOneVault),
@@ -218,8 +218,17 @@ contract HexOneProperties {
 
     function randBorrow(uint256 randUser, uint256 randAmount, uint256 randStakeId) public {
         User user = users[randUser % users.length];
-        uint256 amount = (randAmount % 1 ether); // this can be improved - define setPrice in feed mock to allow range of randAmount to make transaction go through
+
+        (uint256 totalAmount,, uint256 totalBorrowed) = hexOneVault.userInfos(address(user));
+        uint256 rate = hexOnePriceFeedMock.getRate(address(hexx), address(hex1));
+
+        uint256 convertedRatio = (totalAmount * rate) - totalBorrowed;
+
+        require(convertedRatio != 0);
+
+        uint256 amount = clampBetween(randAmount, 1, convertedRatio);
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+
         (bool success,) =
             user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, amount, stakeId));
         require(success);
@@ -229,8 +238,9 @@ contract HexOneProperties {
 
     function randStake(uint256 randUser, uint256 randAmount, uint256 randStakeToken) public {
         User user = users[randUser % users.length];
+
         address token = stakeTokens[randStakeToken % stakeTokens.length];
-        uint256 amount = (randAmount % initialMintToken) / 1000 + 1; // check for bound cheatcode, do that instead
+        uint256 amount = clampBetween(randAmount, 1, initialMintToken / 4);
 
         (bool success,) = user.proxy(
             address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.stake.selector, token, amount)
@@ -240,6 +250,7 @@ contract HexOneProperties {
 
     function randUnstake(uint256 randUser, uint256 randAmount, uint256 randStakeToken) public {
         User user = users[randUser % users.length];
+
         address token = stakeTokens[randStakeToken % stakeTokens.length];
         uint256 amount = randAmount % hexOneStakingWrap.getPoolInfoStakeAmount(address(user), token);
 
@@ -261,8 +272,10 @@ contract HexOneProperties {
 
     function randSacrifice(uint256 randUser, uint256 randToken, uint256 randAmountIn) public {
         User user = users[randUser % users.length];
+
         address token = sacrificeTokens[randToken % sacrificeTokens.length];
-        uint256 amount = (randAmountIn % initialMintToken) / 1000 + 1; // check for bound cheatcode, do that instead, add hex or 18 decimal check
+
+        uint256 amount = clampBetween(randAmountIn, 1, (token == address(hexx) ? initialMintHex : initialMintToken) / 4);
 
         (bool success,) = user.proxy(
             address(hexOneBootstrap),
@@ -273,6 +286,7 @@ contract HexOneProperties {
 
     function randClaimSacrifice(uint256 randUser) public {
         User user = users[randUser % users.length];
+
         (bool success,) =
             user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
         require(success);
@@ -280,6 +294,7 @@ contract HexOneProperties {
 
     function randClaimAirdrop(uint256 randUser) public {
         User user = users[randUser % users.length];
+
         (bool success,) =
             user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimAirdrop.selector));
         require(success);
@@ -305,8 +320,11 @@ contract HexOneProperties {
     function randSetPrices(uint256 randTokenIn, uint256 randTokenOut, int8 randRate) public {
         address tokenIn = sacrificeTokens[randTokenIn % sacrificeTokens.length];
         address tokenOut = sacrificeTokens[randTokenOut % sacrificeTokens.length];
+
         require(tokenIn != tokenOut);
+
         int256 r = int256(hexOnePriceFeedMock.getRate(tokenIn, tokenOut)) + (int256(randRate) / 2); // will add small jump in the price [-127, 127] - needs bound
+
         require(r > 0);
 
         setPrices(tokenIn, tokenOut, uint256(r));
