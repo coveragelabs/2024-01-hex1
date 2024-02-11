@@ -27,44 +27,69 @@ contract User {
 }
 
 contract HexOneProperties {
+    //init mints
+    uint256 public initialMintHex;
+    uint256 public initialMintToken;
+
+    //user data
     uint256 public totalNbUsers;
-    uint256 public initialMint;
     User[] public users;
     mapping(User user => uint256[] stakeIds) userToStakeids;
-    address[] public stakeTokens = new address[](3);
-    address[] public sacrificeTokens = new address[](2);
-    address[] public tokens = new address[](4);
+
+    //token data
+    address[] public stakeTokens; //HEX1/DAI replaces DAI
+    address[] public sacrificeTokens; //PLSX and WPLS missing
 
     // contracts
+
+    //internal
+    HexOnePriceFeedMock public hexOnePriceFeedMock;
     HexitTokenWrap public hexit;
+    Hex1TokenWrap public hex1;
+
     HexOneBootstrap public hexOneBootstrap;
     HexOneStakingWrap public hexOneStakingWrap;
-    Hex1TokenWrap public hex1;
     HexOneVault public hexOneVault;
+
+    //external tokens
+    HexMockToken public hexx;
+    ERC20Mock public dai;
+    ERC20Mock public wpls;
+    ERC20Mock public plsx;
+    ERC20Mock public hex1dai; //change to pulsex mock
+
+    //pulsex mocks
     DexRouterMock public routerMock;
     DexFactoryMock public factoryMock;
-    HexMockToken public hexx;
-    HexOnePriceFeedMock public hexOnePriceFeedMock;
-    ERC20Mock public dai;
 
     constructor() payable {
         // config -----------
         totalNbUsers = 10;
-        initialMint = 1000 ether;
+
+        initialMintHex = 1000000e8;
+        initialMintToken = 1000000 ether;
 
         uint16 hexDistRate = 10;
         uint16 hexitDistRate = 10;
         // ------------------
         User receiver = new User();
 
-        /// setup HexOne
+        //internal tokens
         hex1 = new Hex1TokenWrap("Hex One Token", "HEX1");
         hexit = new HexitTokenWrap("Hexit Token", "HEXIT");
-        hexx = new HexMockToken();
-        routerMock = new DexRouterMock(); // TODO
-        factoryMock = new DexFactoryMock(); // TODO
-        dai = new ERC20Mock("DAI token", "DAI");
+        hex1dai = new ERC20Mock("HEX1/DAI LP Token", "HEX1DAI");
 
+        //external tokens
+        hexx = new HexMockToken(); //8 decimals
+        dai = new ERC20Mock("DAI token", "DAI");
+        wpls = new ERC20Mock("WPLS token", "WPLS");
+        plsx = new ERC20Mock("PLSX token", "PLSX");
+
+        //pulsex init
+        routerMock = new DexRouterMock(); // TODO - finish addLiquidity
+        factoryMock = new DexFactoryMock(); // TODO - finish methods
+
+        //init func contracts
         hexOneVault = new HexOneVault(address(hexx), address(dai), address(hex1));
         hexOneStakingWrap = new HexOneStakingWrap(address(hexx), address(hexit), hexDistRate, hexitDistRate);
         hexOnePriceFeedMock = new HexOnePriceFeedMock();
@@ -79,46 +104,50 @@ contract HexOneProperties {
         );
 
         stakeTokens = new address[](3); // prepare the allowed staking tokens
-        stakeTokens[0] = address(dai);
+        stakeTokens[0] = address(hex1dai);
         stakeTokens[1] = address(hex1);
         stakeTokens[2] = address(hexit);
+
         uint16[] memory weights = new uint16[](3); // prepare the distribution weights for each stake token
         weights[0] = 700;
         weights[1] = 200;
         weights[2] = 100;
-        sacrificeTokens = new address[](2);
+
+        sacrificeTokens = new address[](4); // prepare sacrifice tokens
         sacrificeTokens[0] = address(hexx);
         sacrificeTokens[1] = address(dai);
-        uint16[] memory multipliers = new uint16[](2); // create an array with the corresponding multiplier for each sacrifice token
+        sacrificeTokens[2] = address(wpls);
+        sacrificeTokens[3] = address(plsx);
+
+        uint16[] memory multipliers = new uint16[](4); // create an array with the corresponding multiplier for each sacrifice token
         multipliers[0] = 5555;
         multipliers[1] = 3000;
+        multipliers[2] = 2000;
+        multipliers[3] = 1000;
 
+        //set circular dependencies
         hex1.setHexOneVault(address(hexOneVault));
+
         hexit.setHexOneBootstrap(address(hexOneBootstrap));
+
         hexOneStakingWrap.setBaseData(address(hexOneVault), address(hexOneBootstrap));
         hexOneStakingWrap.setStakeTokens(stakeTokens, weights);
+
         hexOneVault.setBaseData(address(hexOnePriceFeedMock), address(hexOneStakingWrap), address(hexOneBootstrap));
+
         hexOneBootstrap.setBaseData(address(hexOnePriceFeedMock), address(hexOneStakingWrap), address(hexOneVault));
         hexOneBootstrap.setSacrificeTokens(sacrificeTokens, multipliers);
 
-        tokens.push(address(hex1));
-        tokens.push(address(hexit));
-        tokens.push(address(hexx));
-        tokens.push(address(dai));
-
         /// set initial prices 1 == 1
-        setPrices(address(dai), address(hex1), 10_000); // 10000 == 1
-        setPrices(address(dai), address(hexx), 10_000);
-        setPrices(address(dai), address(hexit), 10_000);
-        setPrices(address(hexx), address(hex1), 10_000);
-        setPrices(address(hexx), address(hexit), 10_000);
-        setPrices(address(hexit), address(hex1), 10_000);
+        setPrices(address(hexx), address(dai), 10_000); // 10000 == 1
+        setPrices(address(plsx), address(dai), 10_000);
+        setPrices(address(wpls), address(dai), 10_000);
 
         /// fund router swapper
-        hexx.mint(address(routerMock), 1000000 ether);
+        hexx.mint(address(routerMock), 1000000e8);
         dai.mint(address(routerMock), 1000000 ether);
-        hexit.mintAdmin(address(routerMock), 1000000 ether);
-        hex1.mintAdmin(address(routerMock), 1000000 ether);
+        wpls.mint(address(routerMock), 1000000 ether);
+        plsx.mint(address(routerMock), 1000000 ether);
 
         /// setup users (admin is this contract)
         // user
@@ -126,25 +155,22 @@ contract HexOneProperties {
             User user = new User();
             users.push(user);
 
-            // all users get an initial supply of 100e18 of dai and hex
-            hexx.mint(address(user), initialMint);
-            dai.mint(address(user), initialMint);
+            // all users get an initial supply of 1MM dai and hex - change to cheatcode
+            hexx.mint(address(user), initialMintHex);
+            dai.mint(address(user), initialMintToken);
 
             // approve all contracts
             user.approveERC20(hexx, address(hexOneVault));
-            user.approveERC20(dai, address(hexOneVault));
-            user.approveERC20(hexit, address(hexOneVault));
             user.approveERC20(hex1, address(hexOneVault));
 
-            user.approveERC20(hexx, address(hexOneStakingWrap));
-            user.approveERC20(dai, address(hexOneStakingWrap));
             user.approveERC20(hexit, address(hexOneStakingWrap));
             user.approveERC20(hex1, address(hexOneStakingWrap));
+            user.approveERC20(hex1dai, address(hexOneStakingWrap));
 
             user.approveERC20(hexx, address(hexOneBootstrap));
             user.approveERC20(dai, address(hexOneBootstrap));
-            user.approveERC20(hexit, address(hexOneBootstrap));
-            user.approveERC20(hex1, address(hexOneBootstrap));
+            user.approveERC20(wpls, address(hexOneBootstrap));
+            user.approveERC20(plsx, address(hexOneBootstrap));
         }
     }
 
@@ -155,10 +181,11 @@ contract HexOneProperties {
 
     function randDeposit(uint256 randUser, uint256 randAmount, uint16 randDuration) public {
         User user = users[randUser % users.length];
-        uint256 amount = (randAmount % initialMint) / 1000 + 1;
+        uint256 amount = (randAmount % initialMintHex) / 1000 + 1; // check for bound cheatcode, do that instead
+
         //uint16 duration = randDuration % hexOneVault.MAX_DURATION();
         uint16 duration = randDuration % 10;
-        duration = duration < hexOneVault.MIN_DURATION() ? hexOneVault.MIN_DURATION() : duration;
+        duration = duration < hexOneVault.MIN_DURATION() ? hexOneVault.MIN_DURATION() : duration; // change to bound
 
         (bool success, bytes memory data) =
             user.proxy(address(hexOneVault), abi.encodeWithSignature("deposit(uint256,uint16)", amount, duration));
@@ -172,9 +199,6 @@ contract HexOneProperties {
     function randClaimVault(uint256 randUser, uint256 randStakeId) public {
         User user = users[randUser % users.length];
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
-
-        // emit LogUint(IHexToken(hexx).currentDay());
-        // assert(false);
 
         (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
         require(success);
@@ -194,7 +218,7 @@ contract HexOneProperties {
 
     function randBorrow(uint256 randUser, uint256 randAmount, uint256 randStakeId) public {
         User user = users[randUser % users.length];
-        uint256 amount = (randAmount % 1 ether); // this can be improved
+        uint256 amount = (randAmount % 1 ether); // this can be improved - define setPrice in feed mock to allow range of randAmount to make transaction go through
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
         (bool success,) =
             user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, amount, stakeId));
@@ -206,7 +230,7 @@ contract HexOneProperties {
     function randStake(uint256 randUser, uint256 randAmount, uint256 randStakeToken) public {
         User user = users[randUser % users.length];
         address token = stakeTokens[randStakeToken % stakeTokens.length];
-        uint256 amount = (randAmount % initialMint) / 1000 + 1;
+        uint256 amount = (randAmount % initialMintToken) / 1000 + 1; // check for bound cheatcode, do that instead
 
         (bool success,) = user.proxy(
             address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.stake.selector, token, amount)
@@ -238,7 +262,7 @@ contract HexOneProperties {
     function randSacrifice(uint256 randUser, uint256 randToken, uint256 randAmountIn) public {
         User user = users[randUser % users.length];
         address token = sacrificeTokens[randToken % sacrificeTokens.length];
-        uint256 amount = (randAmountIn % initialMint) / 1000 + 1;
+        uint256 amount = (randAmountIn % initialMintToken) / 1000 + 1; // check for bound cheatcode, do that instead, add hex or 18 decimal check
 
         (bool success,) = user.proxy(
             address(hexOneBootstrap),
@@ -262,24 +286,27 @@ contract HexOneProperties {
     }
 
     // admin calls
-    function randSetSacrificeStart() public {
+    function auxSetSacrificeStart() public {
         hexOneBootstrap.setSacrificeStart(block.timestamp);
     }
 
-    function randStartAirdrop() public {
+    function auxStartAirdrop() public {
         hexOneBootstrap.startAidrop();
     }
 
-    function randProcessSacrifice() public {
-        hexOneBootstrap.processSacrifice(0);
+    function auxProcessSacrifice() public {
+        uint256 totalHexAmount = hexOneBootstrap.totalHexAmount();
+        uint256 minAmountOut = (totalHexAmount * 1250) / 10000;
+
+        hexOneBootstrap.processSacrifice(minAmountOut);
     }
 
     /// ----- General state updates -----
     function randSetPrices(uint256 randTokenIn, uint256 randTokenOut, int8 randRate) public {
-        address tokenIn = tokens[randTokenIn % tokens.length];
-        address tokenOut = tokens[randTokenOut % tokens.length];
+        address tokenIn = sacrificeTokens[randTokenIn % sacrificeTokens.length];
+        address tokenOut = sacrificeTokens[randTokenOut % sacrificeTokens.length];
         require(tokenIn != tokenOut);
-        int256 r = int256(hexOnePriceFeedMock.getRate(tokenIn, tokenOut)) + (int256(randRate) / 2); // will add small jump in the price [-127, 127]
+        int256 r = int256(hexOnePriceFeedMock.getRate(tokenIn, tokenOut)) + (int256(randRate) / 2); // will add small jump in the price [-127, 127] - needs bound
         require(r > 0);
 
         setPrices(tokenIn, tokenOut, uint256(r));
@@ -366,9 +393,9 @@ contract HexOneProperties {
     /// @custom:invariant - The fee taken from deposits must always be 5%
     function hexOneDepositAmountDurationIntegrity(uint256 randUser, uint256 randAmount, uint16 randDuration) public {
         User user = users[randUser % users.length];
-        uint256 amount = (randAmount % initialMint) / 1000 + 1;
+        uint256 amount = (randAmount % initialMintHex) / 1000 + 1;
         uint16 duration = randDuration % 10;
-        duration = duration < hexOneVault.MIN_DURATION() ? hexOneVault.MIN_DURATION() : duration;
+        duration = duration < hexOneVault.MIN_DURATION() ? hexOneVault.MIN_DURATION() : duration; //change to bound
         uint16 fee = 50;
         uint16 fixed_point = 1000;
 
