@@ -439,12 +439,12 @@ contract HexOneProperties is PropertiesAsserts {
     /// @custom:invariant - The fee taken from deposits must always be 5%
     function hexOneDepositAmountDurationIntegrity(uint256 randUser, uint256 randAmount, uint16 randDuration) public {
         User user = users[randUser % users.length];
-        uint256 amount = (randAmount % initialMintHex) / 1000 + 1;
-        uint16 duration = randDuration % 10;
-        duration = duration < hexOneVault.MIN_DURATION() ? hexOneVault.MIN_DURATION() : duration; //change to bound
+
+        uint256 amount = clampBetween(randAmount, 1, initialMintHex / 4);
+        uint16 duration = uint16(clampBetween(randDuration, hexOneVault.MIN_DURATION(), hexOneVault.MAX_DURATION()));
+
         uint16 fee = 50;
         uint16 fixed_point = 1000;
-
         uint256 finalAmount = amount - ((amount * fee) / fixed_point);
 
         (bool success, bytes memory data) =
