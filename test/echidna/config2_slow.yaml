@@ -10,7 +10,3 @@ deployer: "0x10000"
 sender: ["0x10000", "0x20000", "0x30000"]
 coverageFormats: ["txt"]
 shrinkLimit: 5000
-
-# Ignore helpers
-filterBlacklist: true
-filterFunctions: ["setPrice"]

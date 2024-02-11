@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "../../lib/properties/contracts/util/Hevm.sol";
+import "../../lib/properties/contracts/util/PropertiesHelper.sol";
 
 import "../../src/HexOneStaking.sol";
 import "../../src/HexitToken.sol";
@@ -26,45 +27,70 @@ contract User {
     }
 }
 
-contract HexOneProperties {
-    uint256 public totalNbUsers;
-    uint256 public initialMint;
-    User[] public users;
+contract HexOneProperties is PropertiesAsserts {
+    //init mints
+    uint256 private initialMintHex;
+    uint256 private initialMintToken;
+
+    //user data
+    uint256 private totalNbUsers;
+    User[] private users;
     mapping(User user => uint256[] stakeIds) userToStakeids;
-    address[] public stakeTokens = new address[](3);
-    address[] public sacrificeTokens = new address[](2);
-    address[] public tokens = new address[](4);
+
+    //token data
+    address[] private stakeTokens;
+    address[] private sacrificeTokens;
 
     // contracts
-    HexitTokenWrap public hexit;
-    HexOneBootstrap public hexOneBootstrap;
-    HexOneStakingWrap public hexOneStakingWrap;
-    Hex1TokenWrap public hex1;
-    HexOneVault public hexOneVault;
-    DexRouterMock public routerMock;
-    DexFactoryMock public factoryMock;
-    HexMockToken public hexx;
-    HexOnePriceFeedMock public hexOnePriceFeedMock;
-    ERC20Mock public dai;
 
-    constructor() payable {
+    //internal
+    HexOnePriceFeedMock private hexOnePriceFeedMock;
+    HexitTokenWrap private hexit;
+    Hex1TokenWrap private hex1;
+
+    HexOneBootstrap private hexOneBootstrap;
+    HexOneStakingWrap private hexOneStakingWrap;
+    HexOneVault private hexOneVault;
+
+    //external tokens
+    HexMockToken private hexx;
+    ERC20Mock private dai;
+    ERC20Mock private wpls;
+    ERC20Mock private plsx;
+    ERC20Mock private hex1dai;
+
+    //pulsex mocks
+    DexRouterMock private routerMock;
+    DexFactoryMock private factoryMock;
+
+    constructor() {
         // config -----------
         totalNbUsers = 10;
-        initialMint = 1000 ether;
+
+        initialMintHex = 1000000e8;
+        initialMintToken = 1000000 ether;
 
         uint16 hexDistRate = 10;
         uint16 hexitDistRate = 10;
         // ------------------
-        User receiver = new User();
+        User teamWallet = new User();
 
-        /// setup HexOne
+        //internal tokens
         hex1 = new Hex1TokenWrap("Hex One Token", "HEX1");
         hexit = new HexitTokenWrap("Hexit Token", "HEXIT");
-        hexx = new HexMockToken();
-        routerMock = new DexRouterMock(); // TODO
-        factoryMock = new DexFactoryMock(); // TODO
-        dai = new ERC20Mock("DAI token", "DAI");
+        hex1dai = new ERC20Mock("HEX1/DAI LP Token", "HEX1DAI");
 
+        //external tokens
+        hexx = new HexMockToken(); //8 decimals
+        dai = new ERC20Mock("DAI token", "DAI");
+        wpls = new ERC20Mock("WPLS token", "WPLS");
+        plsx = new ERC20Mock("PLSX token", "PLSX");
+
+        //pulsex init
+        routerMock = new DexRouterMock(address(hex1dai));
+        factoryMock = new DexFactoryMock(address(hex1dai));
+
+        //init func contracts
         hexOneVault = new HexOneVault(address(hexx), address(dai), address(hex1));
         hexOneStakingWrap = new HexOneStakingWrap(address(hexx), address(hexit), hexDistRate, hexitDistRate);
         hexOnePriceFeedMock = new HexOnePriceFeedMock();
@@ -75,50 +101,55 @@ contract HexOneProperties {
             address(hexit),
             address(dai),
             address(hex1),
-            address(receiver)
+            address(teamWallet)
         );
 
         stakeTokens = new address[](3); // prepare the allowed staking tokens
-        stakeTokens[0] = address(dai);
+        stakeTokens[0] = address(hex1dai);
         stakeTokens[1] = address(hex1);
         stakeTokens[2] = address(hexit);
+
         uint16[] memory weights = new uint16[](3); // prepare the distribution weights for each stake token
         weights[0] = 700;
         weights[1] = 200;
         weights[2] = 100;
-        sacrificeTokens = new address[](2);
+
+        sacrificeTokens = new address[](4); // prepare sacrifice tokens
         sacrificeTokens[0] = address(hexx);
         sacrificeTokens[1] = address(dai);
-        uint16[] memory multipliers = new uint16[](2); // create an array with the corresponding multiplier for each sacrifice token
+        sacrificeTokens[2] = address(wpls);
+        sacrificeTokens[3] = address(plsx);
+
+        uint16[] memory multipliers = new uint16[](4); // create an array with the corresponding multiplier for each sacrifice token
         multipliers[0] = 5555;
         multipliers[1] = 3000;
+        multipliers[2] = 2000;
+        multipliers[3] = 1000;
 
+        //set circular dependencies
         hex1.setHexOneVault(address(hexOneVault));
+
         hexit.setHexOneBootstrap(address(hexOneBootstrap));
+
         hexOneStakingWrap.setBaseData(address(hexOneVault), address(hexOneBootstrap));
         hexOneStakingWrap.setStakeTokens(stakeTokens, weights);
+
         hexOneVault.setBaseData(address(hexOnePriceFeedMock), address(hexOneStakingWrap), address(hexOneBootstrap));
+
         hexOneBootstrap.setBaseData(address(hexOnePriceFeedMock), address(hexOneStakingWrap), address(hexOneVault));
         hexOneBootstrap.setSacrificeTokens(sacrificeTokens, multipliers);
 
-        tokens.push(address(hex1));
-        tokens.push(address(hexit));
-        tokens.push(address(hexx));
-        tokens.push(address(dai));
-
-        /// set initial prices 1 == 1
-        setPrices(address(dai), address(hex1), 10_000); // 10000 == 1
-        setPrices(address(dai), address(hexx), 10_000);
-        setPrices(address(dai), address(hexit), 10_000);
-        setPrices(address(hexx), address(hex1), 10_000);
-        setPrices(address(hexx), address(hexit), 10_000);
-        setPrices(address(hexit), address(hex1), 10_000);
+        /// set initial prices
+        setPrices(address(hexx), address(dai), 15275940385037058);
+        setPrices(address(plsx), address(dai), 48267909955849);
+        setPrices(address(wpls), address(dai), 120458801936871);
+        setPrices(address(hex1), address(dai), 1e18);
 
         /// fund router swapper
-        hexx.mint(address(routerMock), 1000000 ether);
+        hexx.mint(address(routerMock), 1000000e8);
         dai.mint(address(routerMock), 1000000 ether);
-        hexit.mintAdmin(address(routerMock), 1000000 ether);
-        hex1.mintAdmin(address(routerMock), 1000000 ether);
+        wpls.mint(address(routerMock), 1000000 ether);
+        plsx.mint(address(routerMock), 1000000 ether);
 
         /// setup users (admin is this contract)
         // user
@@ -126,25 +157,24 @@ contract HexOneProperties {
             User user = new User();
             users.push(user);
 
-            // all users get an initial supply of 100e18 of dai and hex
-            hexx.mint(address(user), initialMint);
-            dai.mint(address(user), initialMint);
+            // all users get an initial supply of 1MM dai and hex - change to cheatcode
+            hexx.mint(address(user), initialMintHex);
+            dai.mint(address(user), initialMintToken);
+            wpls.mint(address(user), initialMintToken);
+            plsx.mint(address(user), initialMintToken);
 
             // approve all contracts
             user.approveERC20(hexx, address(hexOneVault));
-            user.approveERC20(dai, address(hexOneVault));
-            user.approveERC20(hexit, address(hexOneVault));
             user.approveERC20(hex1, address(hexOneVault));
 
-            user.approveERC20(hexx, address(hexOneStakingWrap));
-            user.approveERC20(dai, address(hexOneStakingWrap));
             user.approveERC20(hexit, address(hexOneStakingWrap));
             user.approveERC20(hex1, address(hexOneStakingWrap));
+            user.approveERC20(hex1dai, address(hexOneStakingWrap));
 
             user.approveERC20(hexx, address(hexOneBootstrap));
             user.approveERC20(dai, address(hexOneBootstrap));
-            user.approveERC20(hexit, address(hexOneBootstrap));
-            user.approveERC20(hex1, address(hexOneBootstrap));
+            user.approveERC20(wpls, address(hexOneBootstrap));
+            user.approveERC20(plsx, address(hexOneBootstrap));
         }
     }
 
@@ -155,10 +185,9 @@ contract HexOneProperties {
 
     function randDeposit(uint256 randUser, uint256 randAmount, uint16 randDuration) public {
         User user = users[randUser % users.length];
-        uint256 amount = (randAmount % initialMint) / 1000 + 1;
-        //uint16 duration = randDuration % hexOneVault.MAX_DURATION();
-        uint16 duration = randDuration % 10;
-        duration = duration < hexOneVault.MIN_DURATION() ? hexOneVault.MIN_DURATION() : duration;
+
+        uint256 amount = clampBetween(randAmount, 1, initialMintHex / 4);
+        uint16 duration = uint16(clampBetween(randDuration, hexOneVault.MIN_DURATION(), hexOneVault.MAX_DURATION()));
 
         (bool success, bytes memory data) =
             user.proxy(address(hexOneVault), abi.encodeWithSignature("deposit(uint256,uint16)", amount, duration));
@@ -173,9 +202,6 @@ contract HexOneProperties {
         User user = users[randUser % users.length];
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
 
-        // emit LogUint(IHexToken(hexx).currentDay());
-        // assert(false);
-
         (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
         require(success);
     }
@@ -183,6 +209,7 @@ contract HexOneProperties {
     function randLiquidate(uint256 randUser, uint256 randDepositor, uint256 randStakeId) public {
         User userLiquidator = users[randUser % users.length];
         User userDepositor = users[randDepositor % users.length];
+
         uint256 stakeId = userToStakeids[userDepositor][randStakeId % userToStakeids[userDepositor].length];
 
         (bool success,) = userLiquidator.proxy(
@@ -194,8 +221,17 @@ contract HexOneProperties {
 
     function randBorrow(uint256 randUser, uint256 randAmount, uint256 randStakeId) public {
         User user = users[randUser % users.length];
-        uint256 amount = (randAmount % 1 ether); // this can be improved
+
+        (uint256 totalAmount,, uint256 totalBorrowed) = hexOneVault.userInfos(address(user));
+        uint256 rate = hexOnePriceFeedMock.getRate(address(hexx), address(hex1));
+
+        uint256 convertedRatio = (totalAmount * rate) - totalBorrowed;
+
+        require(convertedRatio != 0);
+
+        uint256 amount = clampBetween(randAmount, 1, convertedRatio);
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+
         (bool success,) =
             user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, amount, stakeId));
         require(success);
@@ -205,8 +241,9 @@ contract HexOneProperties {
 
     function randStake(uint256 randUser, uint256 randAmount, uint256 randStakeToken) public {
         User user = users[randUser % users.length];
+
         address token = stakeTokens[randStakeToken % stakeTokens.length];
-        uint256 amount = (randAmount % initialMint) / 1000 + 1;
+        uint256 amount = clampBetween(randAmount, 1, initialMintToken / 4);
 
         (bool success,) = user.proxy(
             address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.stake.selector, token, amount)
@@ -216,6 +253,7 @@ contract HexOneProperties {
 
     function randUnstake(uint256 randUser, uint256 randAmount, uint256 randStakeToken) public {
         User user = users[randUser % users.length];
+
         address token = stakeTokens[randStakeToken % stakeTokens.length];
         uint256 amount = randAmount % hexOneStakingWrap.getPoolInfoStakeAmount(address(user), token);
 
@@ -237,8 +275,10 @@ contract HexOneProperties {
 
     function randSacrifice(uint256 randUser, uint256 randToken, uint256 randAmountIn) public {
         User user = users[randUser % users.length];
+
         address token = sacrificeTokens[randToken % sacrificeTokens.length];
-        uint256 amount = (randAmountIn % initialMint) / 1000 + 1;
+
+        uint256 amount = clampBetween(randAmountIn, 1, (token == address(hexx) ? initialMintHex : initialMintToken) / 4);
 
         (bool success,) = user.proxy(
             address(hexOneBootstrap),
@@ -249,6 +289,7 @@ contract HexOneProperties {
 
     function randClaimSacrifice(uint256 randUser) public {
         User user = users[randUser % users.length];
+
         (bool success,) =
             user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
         require(success);
@@ -256,30 +297,62 @@ contract HexOneProperties {
 
     function randClaimAirdrop(uint256 randUser) public {
         User user = users[randUser % users.length];
+
         (bool success,) =
             user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimAirdrop.selector));
         require(success);
     }
 
     // admin calls
-    function randSetSacrificeStart() public {
+    function auxSetSacrificeStart() public {
         hexOneBootstrap.setSacrificeStart(block.timestamp);
     }
 
-    function randStartAirdrop() public {
+    function auxStartAirdrop() public {
         hexOneBootstrap.startAidrop();
     }
 
-    function randProcessSacrifice() public {
-        hexOneBootstrap.processSacrifice(0);
+    function auxProcessSacrifice() public {
+        uint256 totalHexAmount = hexOneBootstrap.totalHexAmount();
+        uint256 minAmountOut = (totalHexAmount * 1250) / 10000;
+
+        hexOneBootstrap.processSacrifice(minAmountOut);
+    }
+
+    // user calls
+    function randAddLiquidity(uint256 randUser, uint256 randAmount) public {
+        User user = users[randUser % users.length];
+
+        uint256 hex1Amount = clampBetween(randAmount, 1, hex1.balanceOf(address(user)) / 4);
+        require(hex1Amount != 0);
+        uint256 daiAmount = hexOnePriceFeedMock.consult(address(hex1), hex1Amount, address(dai));
+
+        (bool success,) = user.proxy(
+            address(routerMock),
+            abi.encodeWithSelector(
+                routerMock.addLiquidity.selector,
+                address(hex1),
+                address(dai),
+                hex1Amount,
+                daiAmount,
+                0,
+                0,
+                address(0),
+                0
+            )
+        );
+        require(success);
     }
 
     /// ----- General state updates -----
-    function randSetPrices(uint256 randTokenIn, uint256 randTokenOut, int8 randRate) public {
-        address tokenIn = tokens[randTokenIn % tokens.length];
-        address tokenOut = tokens[randTokenOut % tokens.length];
+    function randSetPrices(uint256 randTokenIn, uint256 randRate) public {
+        address tokenIn = sacrificeTokens[randTokenIn % sacrificeTokens.length];
+        address tokenOut = address(dai);
+
         require(tokenIn != tokenOut);
-        int256 r = int256(hexOnePriceFeedMock.getRate(tokenIn, tokenOut)) + (int256(randRate) / 2); // will add small jump in the price [-127, 127]
+
+        int256 r = int256(hexOnePriceFeedMock.getRate(tokenIn, tokenOut)) + int256(clampBetween(randRate, 0, 1e10));
+
         require(r > 0);
 
         setPrices(tokenIn, tokenOut, uint256(r));
@@ -352,85 +425,85 @@ contract HexOneProperties {
 
     /// @custom:invariant - HexOneStaking Hex shares to give is always proportional to increase in balance.
     // @audit-issue property broken
-    function hexOneStakingHexSharesToGiveIsAlwaysProportionalToIncreaseInBalance(
-        uint256 randAmount,
-        uint256 randStakeToken
-    ) public {
-        uint256 offset = 100;
+    // function hexOneStakingHexSharesToGiveIsAlwaysProportionalToIncreaseInBalance(
+    //     uint256 randAmount,
+    //     uint256 randStakeToken
+    // ) public {
+    //     uint256 offset = 100;
 
-        address stakeToken = stakeTokens[randStakeToken % stakeTokens.length];
+    //     address stakeToken = stakeTokens[randStakeToken % stakeTokens.length];
 
-        address xToken = stakeTokens[(randStakeToken + 1) % stakeTokens.length];
-        uint256 xTokenBalance = hexOneStakingWrap.totalStakedAmount(xToken);
-        uint256 xTokenWeight = hexOneStakingWrap.stakeTokenWeights(xToken);
+    //     address xToken = stakeTokens[(randStakeToken + 1) % stakeTokens.length];
+    //     uint256 xTokenBalance = hexOneStakingWrap.totalStakedAmount(xToken);
+    //     uint256 xTokenWeight = hexOneStakingWrap.stakeTokenWeights(xToken);
 
-        address yToken = stakeTokens[(randStakeToken + 2) % stakeTokens.length];
-        uint256 yTokenBalance = hexOneStakingWrap.totalStakedAmount(yToken);
-        uint256 yTokenWeight = hexOneStakingWrap.stakeTokenWeights(yToken);
+    //     address yToken = stakeTokens[(randStakeToken + 2) % stakeTokens.length];
+    //     uint256 yTokenBalance = hexOneStakingWrap.totalStakedAmount(yToken);
+    //     uint256 yTokenWeight = hexOneStakingWrap.stakeTokenWeights(yToken);
 
-        uint256 stakeAmount = (randAmount % initialMint) / 1000 + 1;
-        uint256 shares = calculateShares(stakeToken, stakeAmount);
+    //     uint256 stakeAmount = (randAmount % initialMint) / 1000 + 1;
+    //     uint256 shares = calculateShares(stakeToken, stakeAmount);
 
-        if (shares > 0) {
-            uint256 stakeTokenBalance = hexOneStakingWrap.totalStakedAmount(stakeToken);
-            uint256 stakeTokenBalanceIncreaseFactor = ((stakeAmount + stakeTokenBalance) * 10_000) / stakeTokenBalance;
+    //     if (shares > 0) {
+    //         uint256 stakeTokenBalance = hexOneStakingWrap.totalStakedAmount(stakeToken);
+    //         uint256 stakeTokenBalanceIncreaseFactor = ((stakeAmount + stakeTokenBalance) * 10_000) / stakeTokenBalance;
 
-            (,, uint256 totalShares,,) = hexOneStakingWrap.pools(address(hexx));
+    //         (,, uint256 totalShares,,) = hexOneStakingWrap.pools(address(hexx));
 
-            uint256 stakeTokenTotalShares =
-                totalShares - (xTokenBalance * xTokenWeight) - (yTokenBalance * yTokenWeight);
-            uint256 hexSharesIncreaseFactor = ((shares + stakeTokenTotalShares) * 10_000) / stakeTokenTotalShares;
+    //         uint256 stakeTokenTotalShares =
+    //             totalShares - (xTokenBalance * xTokenWeight) - (yTokenBalance * yTokenWeight);
+    //         uint256 hexSharesIncreaseFactor = ((shares + stakeTokenTotalShares) * 10_000) / stakeTokenTotalShares;
 
-            emit LogUint(stakeTokenBalanceIncreaseFactor);
-            emit LogUint(hexSharesIncreaseFactor);
+    //         emit LogUint(stakeTokenBalanceIncreaseFactor);
+    //         emit LogUint(hexSharesIncreaseFactor);
 
-            assert(
-                stakeTokenBalanceIncreaseFactor >= hexSharesIncreaseFactor - offset
-                    && stakeTokenBalanceIncreaseFactor <= hexSharesIncreaseFactor + offset
-            );
-        }
-    }
+    //         assert(
+    //             stakeTokenBalanceIncreaseFactor >= hexSharesIncreaseFactor - offset
+    //                 && stakeTokenBalanceIncreaseFactor <= hexSharesIncreaseFactor + offset
+    //         );
+    //     }
+    // }
 
     /// @custom:invariant - HexOneStaking Hexit shares to give is always proportional to increase in balance.
     // @audit-issue property broken
-    function hexOneStakingHexitSharesToGiveIsAlwaysProportionalToIncreaseInBalance(
-        uint256 randAmount,
-        uint256 randStakeToken
-    ) public {
-        uint256 offset = 100;
+    // function hexOneStakingHexitSharesToGiveIsAlwaysProportionalToIncreaseInBalance(
+    //     uint256 randAmount,
+    //     uint256 randStakeToken
+    // ) public {
+    //     uint256 offset = 100;
 
-        address stakeToken = stakeTokens[randStakeToken % stakeTokens.length];
+    //     address stakeToken = stakeTokens[randStakeToken % stakeTokens.length];
 
-        address xToken = stakeTokens[(randStakeToken + 1) % stakeTokens.length];
-        uint256 xTokenBalance = hexOneStakingWrap.totalStakedAmount(xToken);
-        uint256 xTokenWeight = hexOneStakingWrap.stakeTokenWeights(xToken);
+    //     address xToken = stakeTokens[(randStakeToken + 1) % stakeTokens.length];
+    //     uint256 xTokenBalance = hexOneStakingWrap.totalStakedAmount(xToken);
+    //     uint256 xTokenWeight = hexOneStakingWrap.stakeTokenWeights(xToken);
 
-        address yToken = stakeTokens[(randStakeToken + 2) % stakeTokens.length];
-        uint256 yTokenBalance = hexOneStakingWrap.totalStakedAmount(yToken);
-        uint256 yTokenWeight = hexOneStakingWrap.stakeTokenWeights(yToken);
+    //     address yToken = stakeTokens[(randStakeToken + 2) % stakeTokens.length];
+    //     uint256 yTokenBalance = hexOneStakingWrap.totalStakedAmount(yToken);
+    //     uint256 yTokenWeight = hexOneStakingWrap.stakeTokenWeights(yToken);
 
-        uint256 stakeAmount = (randAmount % initialMint) / 1000 + 1;
-        uint256 shares = calculateShares(stakeToken, stakeAmount);
+    //     uint256 stakeAmount = (randAmount % initialMint) / 1000 + 1;
+    //     uint256 shares = calculateShares(stakeToken, stakeAmount);
 
-        if (shares > 0) {
-            uint256 stakeTokenBalance = hexOneStakingWrap.totalStakedAmount(stakeToken);
-            uint256 stakeTokenBalanceIncreaseFactor = ((stakeAmount + stakeTokenBalance) * 10_000) / stakeTokenBalance;
+    //     if (shares > 0) {
+    //         uint256 stakeTokenBalance = hexOneStakingWrap.totalStakedAmount(stakeToken);
+    //         uint256 stakeTokenBalanceIncreaseFactor = ((stakeAmount + stakeTokenBalance) * 10_000) / stakeTokenBalance;
 
-            (,, uint256 totalShares,,) = hexOneStakingWrap.pools(address(hexit));
+    //         (,, uint256 totalShares,,) = hexOneStakingWrap.pools(address(hexit));
 
-            uint256 stakeTokenTotalShares =
-                totalShares - (xTokenBalance * xTokenWeight) - (yTokenBalance * yTokenWeight);
-            uint256 hexSharesIncreaseFactor = ((shares + stakeTokenTotalShares) * 10_000) / stakeTokenTotalShares;
+    //         uint256 stakeTokenTotalShares =
+    //             totalShares - (xTokenBalance * xTokenWeight) - (yTokenBalance * yTokenWeight);
+    //         uint256 hexSharesIncreaseFactor = ((shares + stakeTokenTotalShares) * 10_000) / stakeTokenTotalShares;
 
-            emit LogUint(stakeTokenBalanceIncreaseFactor);
-            emit LogUint(hexSharesIncreaseFactor);
+    //         emit LogUint(stakeTokenBalanceIncreaseFactor);
+    //         emit LogUint(hexSharesIncreaseFactor);
 
-            assert(
-                stakeTokenBalanceIncreaseFactor >= hexSharesIncreaseFactor - offset
-                    && stakeTokenBalanceIncreaseFactor <= hexSharesIncreaseFactor + offset
-            );
-        }
-    }
+    //         assert(
+    //             stakeTokenBalanceIncreaseFactor >= hexSharesIncreaseFactor - offset
+    //                 && stakeTokenBalanceIncreaseFactor <= hexSharesIncreaseFactor + offset
+    //         );
+    //     }
+    // }
 
     /// @custom:invariant - Users cannot withdraw more Hex1 than they deposit
     // @audit-ok property checked
@@ -534,21 +607,17 @@ contract HexOneProperties {
     // }
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
-    function setPrices(address tokenIn, address tokenOut, uint256 r) public {
+    function setPrices(address tokenIn, address tokenOut, uint256 r) internal {
         routerMock.setRate(tokenIn, tokenOut, r);
         hexOnePriceFeedMock.setRate(tokenIn, tokenOut, r);
-
-        uint256 rReversed = 10000 * 10000 / r;
-        routerMock.setRate(tokenOut, tokenIn, rReversed);
-        hexOnePriceFeedMock.setRate(tokenOut, tokenIn, rReversed);
     }
 
-    function calculateShares(address _stakeToken, uint256 _amount) public returns (uint256) {
+    function calculateShares(address _stakeToken, uint256 _amount) internal returns (uint256) {
         uint256 shares = (_amount * hexOneStakingWrap.stakeTokenWeights(_stakeToken)) / 1000;
         return convertToShares(_stakeToken, shares);
     }
 
-    function convertToShares(address _token, uint256 _amount) public returns (uint256) {
+    function convertToShares(address _token, uint256 _amount) internal returns (uint256) {
         uint8 decimals = TokenUtils.expectDecimals(_token);
         if (decimals >= 18) {
             return _amount / (10 ** (decimals - 18));

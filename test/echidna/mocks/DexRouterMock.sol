@@ -7,7 +7,11 @@ import "../mocks/ERC20Mock.sol";
 contract DexRouterMock {
     mapping(address => mapping(address => uint256)) rates; // base rate 10000
 
-    constructor() {}
+    address hex1dai;
+
+    constructor(address _hex1dai) {
+        hex1dai = _hex1dai;
+    }
 
     function setRate(address tokenIn, address tokenOut, uint256 r) public {
         rates[tokenIn][tokenOut] = r;
@@ -30,12 +34,20 @@ contract DexRouterMock {
         amounts[1] = amountOut;
     }
 
-    function addLiquidity(address, address, uint256, uint256, uint256, uint256, address, uint256)
-        external
-        pure
-        returns (uint256, uint256, uint256)
-    {
-        return (7, 7, 7);
+    function addLiquidity(
+        address hex1,
+        address dai,
+        uint256 hex1Amount,
+        uint256 daiAmount,
+        uint256,
+        uint256,
+        address,
+        uint256
+    ) external returns (uint256, uint256, uint256) {
+        ERC20Mock(hex1).transferFrom(msg.sender, address(this), hex1Amount);
+        ERC20Mock(dai).transferFrom(msg.sender, address(this), daiAmount);
+        ERC20Mock(hex1dai).mint(msg.sender, hex1Amount);
+        return (hex1Amount, daiAmount, 1);
     }
 }
 

@@ -12,9 +12,4 @@ coverageFormats: ["txt"]
 shrinkLimit: 500
 
 maxTimeDelay: 31449600 # 1 year
-
 maxBlockDelay: 3144960 # 1 year
-
-# Ignore helpers
-filterBlacklist: true
-filterFunctions: ["setPrice"]

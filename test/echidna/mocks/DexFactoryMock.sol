@@ -2,9 +2,13 @@
 pragma solidity ^0.8.13;
 
 contract DexFactoryMock {
-    constructor() {}
+    address hex1dai;
 
-    function getPair(address, address) public pure returns (address) {
-        return address(777);
+    constructor(address _hex1dai) {
+        hex1dai = _hex1dai;
+    }
+
+    function getPair(address, address) public view returns (address) {
+        return hex1dai;
     }
 }

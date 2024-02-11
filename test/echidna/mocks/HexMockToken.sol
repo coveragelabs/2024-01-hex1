@@ -11,7 +11,6 @@ contract HexMockToken is ERC20, IHexToken {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.UintSet;
 
-    uint256 public mintAmount = 1_000 * 1e8;
     uint256 public launchedTime;
     uint256 public stakeId;
     uint72 private basicPayout = 6530840230235970;
