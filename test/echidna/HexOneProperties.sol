@@ -38,8 +38,8 @@ contract HexOneProperties is PropertiesAsserts {
     mapping(User user => uint256[] stakeIds) userToStakeids;
 
     //token data
-    address[] public stakeTokens; //HEX1/DAI replaces DAI
-    address[] public sacrificeTokens; //PLSX and WPLS missing
+    address[] public stakeTokens;
+    address[] public sacrificeTokens;
 
     // contracts
 
@@ -159,6 +159,8 @@ contract HexOneProperties is PropertiesAsserts {
             // all users get an initial supply of 1MM dai and hex - change to cheatcode
             hexx.mint(address(user), initialMintHex);
             dai.mint(address(user), initialMintToken);
+            wpls.mint(address(user), initialMintToken);
+            plsx.mint(address(user), initialMintToken);
 
             // approve all contracts
             user.approveERC20(hexx, address(hexOneVault));
@@ -197,7 +199,7 @@ contract HexOneProperties is PropertiesAsserts {
 
     function randClaimVault(uint256 randUser, uint256 randStakeId) public {
         User user = users[randUser % users.length];
-        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length]; // go back here
+        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
 
         (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
         require(success);
@@ -207,7 +209,7 @@ contract HexOneProperties is PropertiesAsserts {
         User userLiquidator = users[randUser % users.length];
         User userDepositor = users[randDepositor % users.length];
 
-        uint256 stakeId = userToStakeids[userDepositor][randStakeId % userToStakeids[userDepositor].length]; // go back here
+        uint256 stakeId = userToStakeids[userDepositor][randStakeId % userToStakeids[userDepositor].length];
 
         (bool success,) = userLiquidator.proxy(
             address(hexOneVault),
@@ -323,7 +325,7 @@ contract HexOneProperties is PropertiesAsserts {
 
         require(tokenIn != tokenOut);
 
-        int256 r = int256(hexOnePriceFeedMock.getRate(tokenIn, tokenOut)) + (int256(randRate) / 2); // will add small jump in the price [-127, 127] - needs bound
+        int256 r = int256(hexOnePriceFeedMock.getRate(tokenIn, tokenOut)) + (int256(randRate) / 2); // will add small jump in the price [-127, 127]
 
         require(r > 0);
 
