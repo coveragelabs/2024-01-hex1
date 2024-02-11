@@ -29,41 +29,41 @@ contract User {
 
 contract HexOneProperties is PropertiesAsserts {
     //init mints
-    uint256 public initialMintHex;
-    uint256 public initialMintToken;
+    uint256 private initialMintHex;
+    uint256 private initialMintToken;
 
     //user data
-    uint256 public totalNbUsers;
-    User[] public users;
+    uint256 private totalNbUsers;
+    User[] private users;
     mapping(User user => uint256[] stakeIds) userToStakeids;
 
     //token data
-    address[] public stakeTokens;
-    address[] public sacrificeTokens;
+    address[] private stakeTokens;
+    address[] private sacrificeTokens;
 
     // contracts
 
     //internal
-    HexOnePriceFeedMock public hexOnePriceFeedMock;
-    HexitTokenWrap public hexit;
-    Hex1TokenWrap public hex1;
+    HexOnePriceFeedMock private hexOnePriceFeedMock;
+    HexitTokenWrap private hexit;
+    Hex1TokenWrap private hex1;
 
-    HexOneBootstrap public hexOneBootstrap;
-    HexOneStakingWrap public hexOneStakingWrap;
-    HexOneVault public hexOneVault;
+    HexOneBootstrap private hexOneBootstrap;
+    HexOneStakingWrap private hexOneStakingWrap;
+    HexOneVault private hexOneVault;
 
     //external tokens
-    HexMockToken public hexx;
-    ERC20Mock public dai;
-    ERC20Mock public wpls;
-    ERC20Mock public plsx;
-    ERC20Mock public hex1dai; //change to pulsex mock
+    HexMockToken private hexx;
+    ERC20Mock private dai;
+    ERC20Mock private wpls;
+    ERC20Mock private plsx;
+    ERC20Mock private hex1dai; //change to pulsex mock
 
     //pulsex mocks
-    DexRouterMock public routerMock;
-    DexFactoryMock public factoryMock;
+    DexRouterMock private routerMock;
+    DexFactoryMock private factoryMock;
 
-    constructor() payable {
+    constructor() {
         // config -----------
         totalNbUsers = 10;
 
@@ -495,7 +495,7 @@ contract HexOneProperties is PropertiesAsserts {
     }
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
-    function setPrices(address tokenIn, address tokenOut, uint256 r) public {
+    function setPrices(address tokenIn, address tokenOut, uint256 r) internal {
         routerMock.setRate(tokenIn, tokenOut, r);
         hexOnePriceFeedMock.setRate(tokenIn, tokenOut, r);
 
@@ -504,12 +504,12 @@ contract HexOneProperties is PropertiesAsserts {
         hexOnePriceFeedMock.setRate(tokenOut, tokenIn, rReversed);
     }
 
-    function calculateShares(address _stakeToken, uint256 _amount) public returns (uint256) {
+    function calculateShares(address _stakeToken, uint256 _amount) internal returns (uint256) {
         uint256 shares = (_amount * hexOneStakingWrap.stakeTokenWeights(_stakeToken)) / 1000;
         return convertToShares(_stakeToken, shares);
     }
 
-    function convertToShares(address _token, uint256 _amount) public returns (uint256) {
+    function convertToShares(address _token, uint256 _amount) internal returns (uint256) {
         uint8 decimals = TokenUtils.expectDecimals(_token);
         if (decimals >= 18) {
             return _amount / (10 ** (decimals - 18));
