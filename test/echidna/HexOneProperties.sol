@@ -57,7 +57,7 @@ contract HexOneProperties is PropertiesAsserts {
     ERC20Mock private dai;
     ERC20Mock private wpls;
     ERC20Mock private plsx;
-    ERC20Mock private hex1dai; //change to pulsex mock
+    ERC20Mock private hex1dai;
 
     //pulsex mocks
     DexRouterMock private routerMock;
@@ -73,7 +73,7 @@ contract HexOneProperties is PropertiesAsserts {
         uint16 hexDistRate = 10;
         uint16 hexitDistRate = 10;
         // ------------------
-        User receiver = new User();
+        User teamWallet = new User();
 
         //internal tokens
         hex1 = new Hex1TokenWrap("Hex One Token", "HEX1");
@@ -87,8 +87,8 @@ contract HexOneProperties is PropertiesAsserts {
         plsx = new ERC20Mock("PLSX token", "PLSX");
 
         //pulsex init
-        routerMock = new DexRouterMock(); // TODO - finish addLiquidity
-        factoryMock = new DexFactoryMock(); // TODO - finish methods
+        routerMock = new DexRouterMock(address(hex1dai));
+        factoryMock = new DexFactoryMock(address(hex1dai));
 
         //init func contracts
         hexOneVault = new HexOneVault(address(hexx), address(dai), address(hex1));
@@ -101,7 +101,7 @@ contract HexOneProperties is PropertiesAsserts {
             address(hexit),
             address(dai),
             address(hex1),
-            address(receiver)
+            address(teamWallet)
         );
 
         stakeTokens = new address[](3); // prepare the allowed staking tokens
@@ -139,10 +139,11 @@ contract HexOneProperties is PropertiesAsserts {
         hexOneBootstrap.setBaseData(address(hexOnePriceFeedMock), address(hexOneStakingWrap), address(hexOneVault));
         hexOneBootstrap.setSacrificeTokens(sacrificeTokens, multipliers);
 
-        /// set initial prices 1 == 1
-        setPrices(address(hexx), address(dai), 10_000); // 10000 == 1
-        setPrices(address(plsx), address(dai), 10_000);
-        setPrices(address(wpls), address(dai), 10_000);
+        /// set initial prices
+        setPrices(address(hexx), address(dai), 15275940385037058);
+        setPrices(address(plsx), address(dai), 48267909955849);
+        setPrices(address(wpls), address(dai), 120458801936871);
+        setPrices(address(hex1), address(dai), 1e18);
 
         /// fund router swapper
         hexx.mint(address(routerMock), 1000000e8);
@@ -318,14 +319,39 @@ contract HexOneProperties is PropertiesAsserts {
         hexOneBootstrap.processSacrifice(minAmountOut);
     }
 
+    // user calls
+    function randAddLiquidity(uint256 randUser, uint256 randAmount) public {
+        User user = users[randUser % users.length];
+
+        uint256 hex1Amount = clampBetween(randAmount, 1, hex1.balanceOf(address(user)) / 4);
+        require(hex1Amount != 0);
+        uint256 daiAmount = hexOnePriceFeedMock.consult(address(hex1), hex1Amount, address(dai));
+
+        (bool success,) = user.proxy(
+            address(routerMock),
+            abi.encodeWithSelector(
+                routerMock.addLiquidity.selector,
+                address(hex1),
+                address(dai),
+                hex1Amount,
+                daiAmount,
+                0,
+                0,
+                address(0),
+                0
+            )
+        );
+        require(success);
+    }
+
     /// ----- General state updates -----
-    function randSetPrices(uint256 randTokenIn, uint256 randTokenOut, int8 randRate) public {
+    function randSetPrices(uint256 randTokenIn, uint256 randRate) public {
         address tokenIn = sacrificeTokens[randTokenIn % sacrificeTokens.length];
-        address tokenOut = sacrificeTokens[randTokenOut % sacrificeTokens.length];
+        address tokenOut = address(dai);
 
         require(tokenIn != tokenOut);
 
-        int256 r = int256(hexOnePriceFeedMock.getRate(tokenIn, tokenOut)) + (int256(randRate) / 2); // will add small jump in the price [-127, 127]
+        int256 r = int256(hexOnePriceFeedMock.getRate(tokenIn, tokenOut)) + int256(clampBetween(randRate, 0, 1e10));
 
         require(r > 0);
 
@@ -498,10 +524,6 @@ contract HexOneProperties is PropertiesAsserts {
     function setPrices(address tokenIn, address tokenOut, uint256 r) internal {
         routerMock.setRate(tokenIn, tokenOut, r);
         hexOnePriceFeedMock.setRate(tokenIn, tokenOut, r);
-
-        uint256 rReversed = 10000 * 10000 / r;
-        routerMock.setRate(tokenOut, tokenIn, rReversed);
-        hexOnePriceFeedMock.setRate(tokenOut, tokenIn, rReversed);
     }
 
     function calculateShares(address _stakeToken, uint256 _amount) internal returns (uint256) {
