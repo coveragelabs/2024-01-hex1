@@ -287,9 +287,8 @@ contract HexOneProperties is PropertiesAsserts {
         require(success);
     }
 
-    function randClaimSacrifice(uint256 randUser, uint256 randStakeId) public {
+    function randClaimSacrifice(uint256 randUser) public {
         User user = users[randUser % users.length];
-        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
 
         (bool success,) =
             user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
