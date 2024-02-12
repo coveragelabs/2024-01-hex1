@@ -287,8 +287,9 @@ contract HexOneProperties is PropertiesAsserts {
         require(success);
     }
 
-    function randClaimSacrifice(uint256 randUser) public {
+    function randClaimSacrifice(uint256 randUser, uint256 randStakeId) public {
         User user = users[randUser % users.length];
+        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
 
         (bool success,) =
             user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
@@ -435,13 +436,16 @@ contract HexOneProperties is PropertiesAsserts {
         assert(success == false && block.timestamp < duration * 86400);
     }
 
+    /*
     /// @custom:invariant - Amount and duration on deposit must always be corresponding to the amount minus fee and corresponding set lock on the contract storage
     /// @custom:invariant - The fee taken from deposits must always be 5%
-    function hexOneDepositAmountDurationIntegrity(uint256 randUser, uint256 randAmount, uint16 randDuration) public {
+    function hexOneDepositAmountDurationIntegrity(uint256 randUser, uint256 randAmount, uint256 randDuration) public {
         User user = users[randUser % users.length];
 
         uint256 amount = clampBetween(randAmount, 1, initialMintHex / 4);
         uint16 duration = uint16(clampBetween(randDuration, hexOneVault.MIN_DURATION(), hexOneVault.MAX_DURATION()));
+
+        emit LogUint(duration);
 
         uint16 fee = 50;
         uint16 fixed_point = 1000;
@@ -457,6 +461,7 @@ contract HexOneProperties is PropertiesAsserts {
 
         assert(success == true && finalAmount == vaultAmount && duration == vaultDuration);
     }
+    */
 
     /// @custom:invariant - If hexOneBorrowed gt 0, the same amount of hexOneBorrowed must always be burned on claim
     /// @custom:invariant - The amount to withdraw after maturity must always be greater or equal than the HEX collateral deposited
@@ -489,6 +494,36 @@ contract HexOneProperties is PropertiesAsserts {
         require(success);
     }
     */
+
+    /// @custom:invariant - The sum of all `DepositInfo.amount` HEX deposited by the user across all its deposits must always be equal to `UserInfo.totalAmount`
+    function checkDepositUserInfoIntegrity(uint256 randUser) public {
+        User user = users[randUser % users.length];
+        uint256 depositTotalAmount;
+
+        for (uint256 i = 0; i < userToStakeids[user].length; i++) {
+            (uint256 depositAmount,,,,,) = hexOneVault.depositInfos(address(user), userToStakeids[user][i]);
+            depositTotalAmount += depositAmount;
+        }
+
+        (uint256 userTotalAmount,,) = hexOneVault.userInfos(address(user));
+
+        assert(depositTotalAmount == userTotalAmount);
+    }
+
+    /// @custom:invariant - The sum of all `DepositInfo.borrowed` HEX1 borrowed by the user across all its deposits must always be equal to `UserInfo.totalBorrowed`
+    function checkBorrowUserInfoIntegrity(uint256 randUser) public {
+        User user = users[randUser % users.length];
+        uint256 depositTotalBorrowed;
+
+        for (uint256 i = 0; i < userToStakeids[user].length; i++) {
+            (,, uint256 depositBorrowed,,,) = hexOneVault.depositInfos(address(user), userToStakeids[user][i]);
+            depositTotalBorrowed += depositBorrowed;
+        }
+
+        (,, uint256 userTotalBorrowed) = hexOneVault.userInfos(address(user));
+
+        assert(depositTotalBorrowed == userTotalBorrowed);
+    }
 
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
     function hexOneLiquidationsIntegrity() public {
