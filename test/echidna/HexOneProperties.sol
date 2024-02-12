@@ -436,7 +436,6 @@ contract HexOneProperties is PropertiesAsserts {
         assert(success == false && block.timestamp < duration * 86400);
     }
 
-    /*
     /// @custom:invariant - Amount and duration on deposit must always be corresponding to the amount minus fee and corresponding set lock on the contract storage
     /// @custom:invariant - The fee taken from deposits must always be 5%
     function hexOneDepositAmountDurationIntegrity(uint256 randUser, uint256 randAmount, uint256 randDuration) public {
@@ -457,11 +456,12 @@ contract HexOneProperties is PropertiesAsserts {
 
         (, uint256 stakeId) = abi.decode(data, (uint256, uint256));
 
+        userToStakeids[user].push(stakeId);
+
         (uint256 vaultAmount,,,, uint16 vaultDuration,) = hexOneVault.depositInfos(address(user), stakeId);
 
         assert(success == true && finalAmount == vaultAmount && duration == vaultDuration);
     }
-    */
 
     /// @custom:invariant - If hexOneBorrowed gt 0, the same amount of hexOneBorrowed must always be burned on claim
     /// @custom:invariant - The amount to withdraw after maturity must always be greater or equal than the HEX collateral deposited
