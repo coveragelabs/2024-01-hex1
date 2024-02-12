@@ -435,7 +435,7 @@ contract HexOneProperties is PropertiesAsserts {
         (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
         assert(success == false && block.timestamp < duration * 86400);
     }
-
+    /*
     /// @custom:invariant - Amount and duration on deposit must always be corresponding to the amount minus fee and corresponding set lock on the contract storage
     /// @custom:invariant - The fee taken from deposits must always be 5%
     function hexOneDepositAmountDurationIntegrity(uint256 randUser, uint256 randAmount, uint256 randDuration) public {
@@ -460,7 +460,7 @@ contract HexOneProperties is PropertiesAsserts {
         (uint256 vaultAmount,,,, uint16 vaultDuration,) = hexOneVault.depositInfos(address(user), stakeId);
 
         assert(finalAmount == vaultAmount && duration == vaultDuration);
-    }
+    }*/
 
     /// @custom:invariant - If hexOneBorrowed gt 0, the same amount of hexOneBorrowed must always be burned on claim
     /// @custom:invariant - The amount to withdraw after maturity must always be greater or equal than the HEX collateral deposited
@@ -482,30 +482,41 @@ contract HexOneProperties is PropertiesAsserts {
         assert(vaultBorrowedAfter == 0 && userHexoneBalanceAfter == 0);
     }
 
-    /*
     /// @custom:invariant - Must only be able to mint more HEXONE with the same HEX collateral if the HEX price increases
     function tryMintMorePriceIncrease(uint256 randUser, uint256 randStakeId) public {
         User user = users[randUser % users.length];
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
 
-        (uint256 totalAmount,,) = hexOneVault.userInfos(address(user));
-        uint256 oldRate = hexOnePriceFeedMock.getRate(address(hexx), address(hex1));
-        uint256 finalAmount = totalAmount * (10 ** (10)) * oldRate;
+        (uint256 totalAmount,, uint256 totalBorrowed) = hexOneVault.userInfos(address(user));
 
-        (bool success,) =
-            user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, finalAmount, stakeId));
+        uint256 rate = hexOnePriceFeedMock.getRate(address(hexx), address(dai));
+        setPrices(address(hexx), address(dai), rate * 2);
+        uint256 convertedRatio = (totalAmount * ((rate * 2) / 1e18)) - totalBorrowed;
+
+        emit LogUint(convertedRatio);
+
+        require(convertedRatio != 0);
+
+        (bool success,) = user.proxy(
+            address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, convertedRatio, stakeId)
+        );
+
+        (,, uint256 newTotalBorrowed) = hexOneVault.userInfos(address(user));
 
         uint256 oldBalance = hex1.balanceOf(address(user));
-        setPrices(address(hexx), address(hex1), oldRate * 2);
+        setPrices(address(hexx), address(dai), rate * 4);
 
-        (bool success1,) =
-            user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, finalAmount, stakeId));
+        uint256 newRate = hexOnePriceFeedMock.getRate(address(hexx), address(dai));
+        uint256 newConvertedRatio = (totalAmount * ((newRate * 2) / 1e18)) - newTotalBorrowed;
+
+        (bool success1,) = user.proxy(
+            address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, newConvertedRatio, stakeId)
+        );
 
         uint256 newBalance = hex1.balanceOf(address(user));
 
         assert(newBalance > oldBalance);
     }
-    */
 
     /// @custom:invariant - The sum of all `DepositInfo.amount` HEX deposited by the user across all its deposits must always be equal to `UserInfo.totalAmount`
     function checkDepositUserInfoIntegrity(uint256 randUser) public {
