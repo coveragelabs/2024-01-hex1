@@ -493,8 +493,6 @@ contract HexOneProperties is PropertiesAsserts {
         setPrices(address(hexx), address(dai), rate * 2);
         uint256 convertedRatio = (totalAmount * ((rate * 2) / 1e18)) - totalBorrowed;
 
-        emit LogUint(convertedRatio);
-
         require(convertedRatio != 0);
 
         (bool success,) = user.proxy(
@@ -516,6 +514,28 @@ contract HexOneProperties is PropertiesAsserts {
         uint256 newBalance = hex1.balanceOf(address(user));
 
         assert(newBalance > oldBalance);
+    }
+
+    /// @custom:invariant - Must never be able to mint more HEXONE with the same HEX collateral if the HEX price decreases
+    function tryMintMorePriceDecrease(uint256 randUser, uint256 randStakeId) public {
+        User user = users[randUser % users.length];
+        uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+
+        (uint256 totalAmount,, uint256 totalBorrowed) = hexOneVault.userInfos(address(user));
+
+        uint256 rate = hexOnePriceFeedMock.getRate(address(hexx), address(dai));
+        setPrices(address(hexx), address(dai), rate / 2);
+        uint256 convertedRatio = (totalAmount * ((rate / 2) / 1e18)) - totalBorrowed;
+
+        uint256 oldBalance = hex1.balanceOf(address(user));
+
+        (bool success,) = user.proxy(
+            address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, convertedRatio, stakeId)
+        );
+
+        uint256 newBalance = hex1.balanceOf(address(user));
+
+        assert(newBalance == oldBalance);
     }
 
     /// @custom:invariant - The sum of all `DepositInfo.amount` HEX deposited by the user across all its deposits must always be equal to `UserInfo.totalAmount`
