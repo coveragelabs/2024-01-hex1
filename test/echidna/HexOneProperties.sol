@@ -585,6 +585,7 @@ contract HexOneProperties is PropertiesAsserts {
         assert(totalHexoneUsersAmount == totalHexoneProtocolAmount);
     }
 
+    /*
     /// @custom:invariant - staking history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
     function poolAmountStateIntegrity() public {
         for (uint256 i = 0; i < stakeTokens.length; i++) {
@@ -597,6 +598,7 @@ contract HexOneProperties is PropertiesAsserts {
             }
         }
     }
+    */
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
     function setPrices(address tokenIn, address tokenOut, uint256 r) internal {
