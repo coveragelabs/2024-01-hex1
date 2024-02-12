@@ -354,7 +354,7 @@ contract HexOneProperties is PropertiesAsserts {
 
         int256 r = int256(hexOnePriceFeedMock.getRate(tokenIn, tokenOut)) + int256(clampBetween(randRate, 0, 1e10));
 
-        require(r > 0);
+        require(r != 0);
 
         setPrices(tokenIn, tokenOut, uint256(r));
     }
@@ -452,7 +452,6 @@ contract HexOneProperties is PropertiesAsserts {
 
         (bool success, bytes memory data) =
             user.proxy(address(hexOneVault), abi.encodeWithSignature("deposit(uint256,uint16)", amount, duration));
-        require(success);
 
         (, uint256 stakeId) = abi.decode(data, (uint256, uint256));
 
@@ -460,20 +459,20 @@ contract HexOneProperties is PropertiesAsserts {
 
         (uint256 vaultAmount,,,, uint16 vaultDuration,) = hexOneVault.depositInfos(address(user), stakeId);
 
-        assert(success == true && finalAmount == vaultAmount && duration == vaultDuration);
+        assert(finalAmount == vaultAmount && duration == vaultDuration);
     }
 
     /// @custom:invariant - If hexOneBorrowed gt 0, the same amount of hexOneBorrowed must always be burned on claim
     /// @custom:invariant - The amount to withdraw after maturity must always be greater or equal than the HEX collateral deposited
-    function hexOneBorrowAmountIntegrity(uint256 randUser, uint256 randStakeId) public {
+    function hexOneBorrowAmountIntegrity(uint256 randUser, uint256 randStakeId, uint256 randTimestamp) public {
         User user = users[randUser % users.length];
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+        (uint256 vaultAmount,,,, uint16 duration,) = hexOneVault.depositInfos(address(user), stakeId);
 
-        (uint256 vaultAmount,,,,,) = hexOneVault.depositInfos(address(user), stakeId);
+        hevm.warp(block.timestamp + duration * 86400 + clampBetween(randTimestamp, 1, 604800));
 
         (bool success, bytes memory data) =
             user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
-        require(success);
 
         uint256 hexAmount = abi.decode(data, (uint256));
         (,, uint256 vaultBorrowedAfter,,,) = hexOneVault.depositInfos(address(user), stakeId);
@@ -485,13 +484,26 @@ contract HexOneProperties is PropertiesAsserts {
 
     /*
     /// @custom:invariant - Must only be able to mint more HEXONE with the same HEX collateral if the HEX price increases
-    function tryMintMorePriceIncrease(uint256 randUser, uint256 randAmount, uint256 randStakeId) public {
+    function tryMintMorePriceIncrease(uint256 randUser, uint256 randStakeId) public {
         User user = users[randUser % users.length];
-        uint256 amount = (randAmount % 1 ether); // this can be improved
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
+
+        (uint256 totalAmount,,) = hexOneVault.userInfos(address(user));
+        uint256 oldRate = hexOnePriceFeedMock.getRate(address(hexx), address(hex1));
+        uint256 finalAmount = totalAmount * (10 ** (10)) * oldRate;
+
         (bool success,) =
-            user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, amount, stakeId));
-        require(success);
+            user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, finalAmount, stakeId));
+
+        uint256 oldBalance = hex1.balanceOf(address(user));
+        setPrices(address(hexx), address(hex1), oldRate * 2);
+
+        (bool success1,) =
+            user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, finalAmount, stakeId));
+
+        uint256 newBalance = hex1.balanceOf(address(user));
+
+        assert(newBalance > oldBalance);
     }
     */
 
