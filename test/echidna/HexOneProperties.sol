@@ -67,8 +67,8 @@ contract HexOneProperties is PropertiesAsserts {
         // config -----------
         totalNbUsers = 10;
 
-        initialMintHex = 1000000e8;
-        initialMintToken = 1000000 ether;
+        initialMintHex = 1_000_000_000e8;
+        initialMintToken = 1_000_000_000 ether;
 
         uint16 hexDistRate = 10;
         uint16 hexitDistRate = 10;
