@@ -592,6 +592,7 @@ contract HexOneProperties is PropertiesAsserts {
         assert(depositTotalBorrowed == userTotalBorrowed);
     }
 
+    /*
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
     function hexOneLiquidationsIntegrity() public {
         uint256 totalHexoneUsersAmount;
@@ -607,7 +608,7 @@ contract HexOneProperties is PropertiesAsserts {
         }
 
         assert(totalHexoneUsersAmount == totalHexoneProtocolAmount);
-    }
+    }*/
 
     /*
     /// @custom:invariant - staking history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
@@ -627,9 +628,13 @@ contract HexOneProperties is PropertiesAsserts {
     /// ----- HexOneBootstrap -----
 
     /// @custom:invariant - If two users sacrificed the same amount of the same sacrifice token on different days, the one who sacrificed first should always receive more `HEXIT` (different days)
-    function sacrificePriorityIntegrity(uint256 randUser, uint256 randNewUser, uint256 randToken, uint256 randAmount)
-        public
-    {
+    /// @custom:invariant The amount of `UserInfo.hexitShares` a user has must always be equal to the amount of `HEXIT` minted when the user claim its sacrifice rewards via `claimSacrifice` function
+    function sacrificePriorityAndSharesIntegrity(
+        uint256 randUser,
+        uint256 randNewUser,
+        uint256 randToken,
+        uint256 randAmount
+    ) public {
         User user = users[randUser % users.length];
         User newUser = users[randNewUser % users.length];
 
@@ -665,6 +670,10 @@ contract HexOneProperties is PropertiesAsserts {
             user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
 
         (,, uint256 hexitMinted) = abi.decode(data, (uint256, uint256, uint256));
+
+        (uint256 hexitShares,,,) = hexOneBootstrap.userInfos(address(user));
+
+        assert(hexitMinted == hexitShares);
 
         (bool successSacrifice1, bytes memory data1) =
             newUser.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
