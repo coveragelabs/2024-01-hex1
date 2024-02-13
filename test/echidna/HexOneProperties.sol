@@ -63,6 +63,9 @@ contract HexOneProperties is PropertiesAsserts {
     DexRouterMock private routerMock;
     DexFactoryMock private factoryMock;
 
+    //team wallet
+    User private teamWallet;
+
     constructor() {
         // config -----------
         totalNbUsers = 10;
@@ -73,7 +76,7 @@ contract HexOneProperties is PropertiesAsserts {
         uint16 hexDistRate = 10;
         uint16 hexitDistRate = 10;
         // ------------------
-        User teamWallet = new User();
+        teamWallet = new User();
 
         //internal tokens
         hex1 = new Hex1TokenWrap("Hex One Token", "HEX1");
@@ -592,7 +595,7 @@ contract HexOneProperties is PropertiesAsserts {
         assert(depositTotalBorrowed == userTotalBorrowed);
     }
 
-    /*
+    /* NEED TO FIX
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
     function hexOneLiquidationsIntegrity() public {
         uint256 totalHexoneUsersAmount;
@@ -793,6 +796,24 @@ contract HexOneProperties is PropertiesAsserts {
         uint256 finalNewUserBalance = newNewUserBalance - oldNewUserBalance;
 
         assert(finalUserBalance == finalNewUserBalance);
+    }
+
+    /// @custom:invariant - The `startAirdrop` function must always mint 33% on top of the total `HEXIT` minted during the sacrifice phase to the HexOneStaking contract
+    /// @custom:invariant - The `startAirdrop` function must always mint 50% on top of the total `HEXIT` minted during the sacrifice phase to the team wallet
+    // @audit-issue - Invariant broken
+    function airdropMintingIntegrity() public {
+        uint256 totalHexitMinted = hexOneBootstrap.totalHexitMinted();
+        uint256 stakingContractBalance = hexit.balanceOf(address(hexOneStakingWrap));
+        uint256 teamWalletBalance = hexit.balanceOf(address(teamWallet));
+
+        require(stakingContractBalance != 0 && teamWalletBalance != 0);
+
+        emit LogUint(totalHexitMinted);
+        emit LogUint(stakingContractBalance);
+        emit LogUint(teamWalletBalance);
+
+        assert(stakingContractBalance == (totalHexitMinted * 33) / 100);
+        assert(teamWalletBalance == (totalHexitMinted * 50) / 100);
     }
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
