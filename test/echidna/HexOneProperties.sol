@@ -619,6 +619,44 @@ contract HexOneProperties is PropertiesAsserts {
     //     }
     // }
 
+    /// @custom:invariant - Sum of all users shares must be equal to the `pool.totalShares`
+    // @audit-ok property checked
+    function sumOfAllUserSharesMustEqualPoolTotalShares() public {
+        uint256 usersTotalShares;
+
+        for (uint8 i; i < users.length; ++i) {
+            User user = users[i];
+            (,,,, uint256 lpStakeHexSharesAmount, uint256 lpStakeHexitSharesAmount,,,,) =
+                hexOneStakingWrap.stakingInfos(address(user), address(stakeTokens[0]));
+            (,,,, uint256 hex1StakeHexSharesAmount, uint256 hex1StakeHexitSharesAmount,,,,) =
+                hexOneStakingWrap.stakingInfos(address(user), address(stakeTokens[1]));
+            (,,,, uint256 hexitStakeHexSharesAmount, uint256 hexitStakeHexitSharesAmount,,,,) =
+                hexOneStakingWrap.stakingInfos(address(user), address(stakeTokens[2]));
+
+            uint256 userTotalShares = lpStakeHexSharesAmount + hex1StakeHexSharesAmount + hexitStakeHexSharesAmount
+                + lpStakeHexitSharesAmount + hex1StakeHexitSharesAmount + hexitStakeHexitSharesAmount;
+
+            usersTotalShares += userTotalShares;
+        }
+
+        (,, uint256 hexPoolTotalShares,,) = hexOneStakingWrap.pools(address(hexx));
+        (,, uint256 hexitPoolTotalShares,,) = hexOneStakingWrap.pools(address(hexit));
+
+        uint256 poolTotalShares = hexPoolTotalShares + hexitPoolTotalShares;
+
+        if (poolTotalShares > 0) {
+            assertEq(usersTotalShares, poolTotalShares, "Total shares mismatch");
+        }
+    }
+
+    /// @custom:invariant - Users can only unstake 2 days after they've staked
+    // @todo
+    // function usersCanOnlyUnstake2DaysAfterTheyHaveStaked() public {}
+
+    /// @custom:invariant - The total rewards to be distributed to Alice with N deposits of X total value should be the same for Bob with pN deposits of X same total value
+    // @todo
+    // function totalRewardsToDistToAliceWithNDepositsOfXValueMustEqForBobWithPNDepositsOfXValue() public {}
+
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
     // function hexitLiquidationsIntegrity() public {
     //     uint256 totalHexoneUsersAmount;
