@@ -67,8 +67,8 @@ contract HexOneProperties is PropertiesAsserts {
         // config -----------
         totalNbUsers = 10;
 
-        initialMintHex = 1000000e8;
-        initialMintToken = 1000000 ether;
+        initialMintHex = 100000000e8;
+        initialMintToken = 100000000 ether;
 
         uint16 hexDistRate = 10;
         uint16 hexitDistRate = 10;
@@ -186,7 +186,7 @@ contract HexOneProperties is PropertiesAsserts {
     function randDeposit(uint256 randUser, uint256 randAmount, uint16 randDuration) public {
         User user = users[randUser % users.length];
 
-        uint256 amount = clampBetween(randAmount, 1, initialMintHex / 4);
+        uint256 amount = clampBetween(randAmount, 1, initialMintHex / 100);
         uint16 duration = uint16(clampBetween(randDuration, hexOneVault.MIN_DURATION(), hexOneVault.MAX_DURATION()));
 
         (bool success, bytes memory data) =
@@ -204,6 +204,14 @@ contract HexOneProperties is PropertiesAsserts {
 
         (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
         require(success);
+
+        /*
+        for (uint256 i = 0; i < userToStakeids[user].length; i++) {
+            if (userToStakeids[user][i] == stakeId) {
+                delete userToStakeids[user][i];
+                break;
+            }
+        }*/
     }
 
     function randLiquidate(uint256 randUser, uint256 randDepositor, uint256 randStakeId) public {
@@ -243,7 +251,7 @@ contract HexOneProperties is PropertiesAsserts {
         User user = users[randUser % users.length];
 
         address token = stakeTokens[randStakeToken % stakeTokens.length];
-        uint256 amount = clampBetween(randAmount, 1, initialMintToken / 4);
+        uint256 amount = clampBetween(randAmount, 1, initialMintToken / 100);
 
         (bool success,) = user.proxy(
             address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.stake.selector, token, amount)
@@ -278,7 +286,8 @@ contract HexOneProperties is PropertiesAsserts {
 
         address token = sacrificeTokens[randToken % sacrificeTokens.length];
 
-        uint256 amount = clampBetween(randAmountIn, 1, (token == address(hexx) ? initialMintHex : initialMintToken) / 4);
+        uint256 amount =
+            clampBetween(randAmountIn, 1, (token == address(hexx) ? initialMintHex : initialMintToken) / 100);
 
         (bool success,) = user.proxy(
             address(hexOneBootstrap),
@@ -290,9 +299,13 @@ contract HexOneProperties is PropertiesAsserts {
     function randClaimSacrifice(uint256 randUser) public {
         User user = users[randUser % users.length];
 
-        (bool success,) =
+        (bool success, bytes memory data) =
             user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
         require(success);
+
+        (uint256 stakeId,,) = abi.decode(data, (uint256, uint256, uint256));
+
+        userToStakeids[user].push(stakeId);
     }
 
     function randClaimAirdrop(uint256 randUser) public {
@@ -440,7 +453,7 @@ contract HexOneProperties is PropertiesAsserts {
     function hexOneDepositAmountDurationIntegrity(uint256 randUser, uint256 randAmount, uint256 randDuration) public {
         User user = users[randUser % users.length];
 
-        uint256 amount = clampBetween(randAmount, 1, initialMintHex / 10);
+        uint256 amount = clampBetween(randAmount, 1, initialMintHex / 100);
         uint16 duration = uint16(clampBetween(randDuration, hexOneVault.MIN_DURATION(), hexOneVault.MAX_DURATION()));
 
         emit LogUint(duration);
@@ -472,6 +485,14 @@ contract HexOneProperties is PropertiesAsserts {
 
         (bool success, bytes memory data) =
             user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
+
+        /*
+        for (uint256 i = 0; i < userToStakeids[user].length; i++) {
+            if (userToStakeids[user][i] == stakeId) {
+                delete userToStakeids[user][i];
+                break;
+            }
+        }*/
 
         uint256 hexAmount = abi.decode(data, (uint256));
         (,, uint256 vaultBorrowedAfter,,,) = hexOneVault.depositInfos(address(user), stakeId);
@@ -540,7 +561,7 @@ contract HexOneProperties is PropertiesAsserts {
     /// @custom:invariant - The sum of all `DepositInfo.amount` HEX deposited by the user across all its deposits must always be equal to `UserInfo.totalAmount`
     function checkDepositUserInfoIntegrity(uint256 randUser) public {
         User user = users[randUser % users.length];
-        uint256 depositTotalAmount;
+        uint256 depositTotalAmount = 0;
 
         for (uint256 i = 0; i < userToStakeids[user].length; i++) {
             (uint256 depositAmount,,,,,) = hexOneVault.depositInfos(address(user), userToStakeids[user][i]);
@@ -549,13 +570,15 @@ contract HexOneProperties is PropertiesAsserts {
 
         (uint256 userTotalAmount,,) = hexOneVault.userInfos(address(user));
 
+        emit LogUint(depositTotalAmount);
+        emit LogUint(userTotalAmount);
         assert(depositTotalAmount == userTotalAmount);
     }
 
     /// @custom:invariant - The sum of all `DepositInfo.borrowed` HEX1 borrowed by the user across all its deposits must always be equal to `UserInfo.totalBorrowed`
     function checkBorrowUserInfoIntegrity(uint256 randUser) public {
         User user = users[randUser % users.length];
-        uint256 depositTotalBorrowed;
+        uint256 depositTotalBorrowed = 0;
 
         for (uint256 i = 0; i < userToStakeids[user].length; i++) {
             (,, uint256 depositBorrowed,,,) = hexOneVault.depositInfos(address(user), userToStakeids[user][i]);
@@ -564,6 +587,8 @@ contract HexOneProperties is PropertiesAsserts {
 
         (,, uint256 userTotalBorrowed) = hexOneVault.userInfos(address(user));
 
+        emit LogUint(depositTotalBorrowed);
+        emit LogUint(userTotalBorrowed);
         assert(depositTotalBorrowed == userTotalBorrowed);
     }
 
@@ -598,6 +623,48 @@ contract HexOneProperties is PropertiesAsserts {
         }
     }
     */
+
+    /// ----- HexOneBootstrap -----
+
+    /// @custom:invariant - If two users sacrificed the same amount of the same sacrifice token on different days, the one who sacrificed first should always receive more `HEXIT` (different days)
+    function bootstrapPriorityIntegrity(uint256 randUser, uint256 randNewUser, uint256 randToken, uint256 randAmount)
+        public
+    {
+        User user = users[randUser % users.length];
+        User newUser = users[randNewUser % users.length];
+
+        address token = sacrificeTokens[randToken % sacrificeTokens.length];
+        uint256 amount = clampBetween(randAmount, 1, initialMintToken / 100);
+
+        (bool success,) = user.proxy(
+            address(hexOneBootstrap),
+            abi.encodeWithSelector(hexOneBootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
+        );
+
+        hevm.warp(block.timestamp + 86401);
+
+        (bool success1,) = newUser.proxy(
+            address(hexOneBootstrap),
+            abi.encodeWithSelector(hexOneBootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
+        );
+
+        hevm.prank(address(0x10000));
+        hexOneBootstrap.processSacrifice(1);
+
+        hevm.warp(block.timestamp + 86401);
+
+        (bool successSacrifice, bytes memory data) =
+            user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
+
+        (,, uint256 hexitMinted) = abi.decode(data, (uint256, uint256, uint256));
+
+        (bool successSacrifice1, bytes memory data1) =
+            newUser.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
+
+        (,, uint256 hexitMinted1) = abi.decode(data1, (uint256, uint256, uint256));
+
+        assert(hexitMinted > hexitMinted1);
+    }
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
     function setPrices(address tokenIn, address tokenOut, uint256 r) internal {
