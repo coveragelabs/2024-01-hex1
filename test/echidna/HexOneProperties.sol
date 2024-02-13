@@ -627,7 +627,7 @@ contract HexOneProperties is PropertiesAsserts {
     /// ----- HexOneBootstrap -----
 
     /// @custom:invariant - If two users sacrificed the same amount of the same sacrifice token on different days, the one who sacrificed first should always receive more `HEXIT` (different days)
-    function bootstrapPriorityIntegrity(uint256 randUser, uint256 randNewUser, uint256 randToken, uint256 randAmount)
+    function sacrificePriorityIntegrity(uint256 randUser, uint256 randNewUser, uint256 randToken, uint256 randAmount)
         public
     {
         User user = users[randUser % users.length];
@@ -636,17 +636,25 @@ contract HexOneProperties is PropertiesAsserts {
         address token = sacrificeTokens[randToken % sacrificeTokens.length];
         uint256 amount = clampBetween(randAmount, 1, initialMintToken / 100);
 
-        (bool success,) = user.proxy(
+        (bool success, bytes memory dataSacrifice) = user.proxy(
             address(hexOneBootstrap),
             abi.encodeWithSelector(hexOneBootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
+
+        (uint256 stakeId,,) = abi.decode(dataSacrifice, (uint256, uint256, uint256));
+
+        userToStakeids[user].push(stakeId);
 
         hevm.warp(block.timestamp + 86401);
 
-        (bool success1,) = newUser.proxy(
+        (bool success1, bytes memory dataSacrifice1) = newUser.proxy(
             address(hexOneBootstrap),
             abi.encodeWithSelector(hexOneBootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
+
+        (uint256 stakeId1,,) = abi.decode(dataSacrifice1, (uint256, uint256, uint256));
+
+        userToStakeids[newUser].push(stakeId1);
 
         hevm.prank(address(0x10000));
         hexOneBootstrap.processSacrifice(1);
@@ -664,6 +672,118 @@ contract HexOneProperties is PropertiesAsserts {
         (,, uint256 hexitMinted1) = abi.decode(data1, (uint256, uint256, uint256));
 
         assert(hexitMinted > hexitMinted1);
+    }
+
+    /// @custom:invariant If two users are entitled to the same amount of airdrop (HEX staked in USD + sacrificed USD), the one who claimed first should always receive more `HEXIT` (different days)
+    function airdropPriorityIntegrityDifferentDays(
+        uint256 randUser,
+        uint256 randNewUser,
+        uint256 randToken,
+        uint256 randAmount
+    ) public {
+        User user = users[randUser % users.length];
+        User newUser = users[randNewUser % users.length];
+
+        address token = sacrificeTokens[randToken % sacrificeTokens.length];
+        uint256 amount = clampBetween(randAmount, 1, initialMintToken / 100);
+
+        (bool success,) = user.proxy(
+            address(hexOneBootstrap),
+            abi.encodeWithSelector(hexOneBootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
+        );
+
+        (bool success1,) = newUser.proxy(
+            address(hexOneBootstrap),
+            abi.encodeWithSelector(hexOneBootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
+        );
+
+        hevm.prank(address(0x10000));
+        hexOneBootstrap.processSacrifice(1);
+
+        (bool successSacrifice,) =
+            user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
+
+        (bool successSacrifice1,) =
+            newUser.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
+
+        uint256 oldUserBalance = hexit.balanceOf(address(user));
+        uint256 oldNewUserBalance = hexit.balanceOf(address(newUser));
+
+        hevm.warp(block.timestamp + 86401);
+
+        hevm.prank(address(0x10000));
+        hexOneBootstrap.startAidrop();
+
+        (bool successAirdrop,) =
+            user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimAirdrop.selector));
+
+        hevm.warp(block.timestamp + 86401);
+
+        (bool successAirdrop1,) =
+            newUser.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimAirdrop.selector));
+
+        uint256 newUserBalance = hexit.balanceOf(address(newUser));
+        uint256 newNewUserBalance = hexit.balanceOf(address(newUser));
+
+        uint256 finalUserBalance = newUserBalance - oldUserBalance;
+        uint256 finalNewUserBalance = newNewUserBalance - oldNewUserBalance;
+
+        assert(finalUserBalance > finalNewUserBalance);
+    }
+
+    /// @custom:invariant If two users are entitled to the same amount of airdrop (HEX staked in USD + sacrificed USD), they should always receive the same amount of `HEXIT` if they claimed the airdrop on the same day
+    function airdropPriorityIntegritySameDay(
+        uint256 randUser,
+        uint256 randNewUser,
+        uint256 randToken,
+        uint256 randAmount
+    ) public {
+        User user = users[randUser % users.length];
+        User newUser = users[randNewUser % users.length];
+
+        address token = sacrificeTokens[randToken % sacrificeTokens.length];
+        uint256 amount = clampBetween(randAmount, 1, initialMintToken / 100);
+
+        (bool success,) = user.proxy(
+            address(hexOneBootstrap),
+            abi.encodeWithSelector(hexOneBootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
+        );
+
+        (bool success1,) = newUser.proxy(
+            address(hexOneBootstrap),
+            abi.encodeWithSelector(hexOneBootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
+        );
+
+        hevm.prank(address(0x10000));
+        hexOneBootstrap.processSacrifice(1);
+
+        (bool successSacrifice,) =
+            user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
+
+        (bool successSacrifice1,) =
+            newUser.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
+
+        uint256 oldUserBalance = hexit.balanceOf(address(user));
+        uint256 oldNewUserBalance = hexit.balanceOf(address(newUser));
+
+        hevm.warp(block.timestamp + 86401);
+
+        hevm.prank(address(0x10000));
+        hexOneBootstrap.startAidrop();
+
+        (bool successAirdrop,) =
+            user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimAirdrop.selector));
+
+        (bool successAirdrop1,) =
+            newUser.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimAirdrop.selector));
+
+        uint256 newUserBalance = hexit.balanceOf(address(newUser));
+        uint256 newNewUserBalance = hexit.balanceOf(address(newUser));
+
+        uint256 finalUserBalance = newUserBalance - oldUserBalance;
+        uint256 finalNewUserBalance = newNewUserBalance - oldNewUserBalance;
+
+        assert(finalUserBalance == finalNewUserBalance);
     }
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
