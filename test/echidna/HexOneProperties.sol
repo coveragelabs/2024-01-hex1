@@ -264,7 +264,7 @@ contract HexOneProperties is PropertiesAsserts {
         );
         require(success);
 
-        string tokenName;
+        string memory tokenName;
         if (address(token) == address(hex1)) {
             tokenName = "Stake token: HEX1";
         } else if (address(token) == address(hexit)) {
@@ -289,7 +289,7 @@ contract HexOneProperties is PropertiesAsserts {
         );
         require(success);
 
-        string tokenName;
+        string memory tokenName;
         if (address(token) == address(hex1)) {
             tokenName = "Unstake token: HEX1";
         } else if (address(token) == address(hexit)) {
@@ -311,7 +311,7 @@ contract HexOneProperties is PropertiesAsserts {
             user.proxy(address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.claim.selector, token));
         require(success);
 
-        string tokenName;
+        string memory tokenName;
         if (address(token) == address(hex1)) {
             tokenName = "Stake token: HEX1";
         } else if (address(token) == address(hexit)) {
@@ -339,7 +339,7 @@ contract HexOneProperties is PropertiesAsserts {
         );
         require(success);
 
-        string tokenName;
+        string memory tokenName;
         if (address(token) == address(hexx)) {
             tokenName = "Sacrifice token: HEX";
         } else if (address(token) == address(dai)) {
