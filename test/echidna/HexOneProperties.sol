@@ -147,10 +147,10 @@ contract HexOneProperties is PropertiesAsserts {
         setPrices(address(hex1), address(dai), 1e18);
 
         /// fund router swapper
-        hexx.mint(address(routerMock), 1000000e8);
-        dai.mint(address(routerMock), 1000000 ether);
-        wpls.mint(address(routerMock), 1000000 ether);
-        plsx.mint(address(routerMock), 1000000 ether);
+        hexx.mint(address(routerMock), 100000000e8);
+        dai.mint(address(routerMock), 100000000 ether);
+        wpls.mint(address(routerMock), 100000000 ether);
+        plsx.mint(address(routerMock), 100000000 ether);
 
         /// setup users (admin is this contract)
         // user
@@ -181,13 +181,11 @@ contract HexOneProperties is PropertiesAsserts {
 
     // --------------------- State updates --------------------- (Here we will be defining all state update functions)
 
-    event LogUint(uint256);
     /// ----- HexOneVault -----
-
     function randDeposit(uint256 randUser, uint256 randAmount, uint256 randDuration) public {
         User user = users[randUser % users.length];
 
-        uint256 amount = clampBetween(randAmount, 1, initialMintHex / 4);
+        uint256 amount = clampBetween(randAmount, 1, initialMintHex / 100);
         uint16 duration = uint16(clampBetween(randDuration, hexOneVault.MIN_DURATION(), hexOneVault.MAX_DURATION()));
 
         (bool success, bytes memory data) =
@@ -197,6 +195,11 @@ contract HexOneProperties is PropertiesAsserts {
         (, uint256 stakeId) = abi.decode(data, (uint256, uint256));
 
         userToStakeids[user].push(stakeId);
+
+        emit LogAddress("User", address(user));
+        emit LogUint256("Deposit amount", amount);
+        emit LogUint256("Duration", uint256(duration));
+        emit LogUint256("Stake ID", stakeId);
     }
 
     function randClaimVault(uint256 randUser, uint256 randStakeId) public {
@@ -205,6 +208,9 @@ contract HexOneProperties is PropertiesAsserts {
 
         (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
         require(success);
+
+        emit LogAddress("User", address(user));
+        emit LogUint256("Stake ID", stakeId);
     }
 
     function randLiquidate(uint256 randUser, uint256 randDepositor, uint256 randStakeId) public {
@@ -218,15 +224,19 @@ contract HexOneProperties is PropertiesAsserts {
             abi.encodeWithSelector(hexOneVault.liquidate.selector, address(userDepositor), stakeId)
         );
         require(success);
+
+        emit LogAddress("Liquidator", address(userLiquidator));
+        emit LogAddress("Depositor", address(userDepositor));
+        emit LogUint256("Stake ID", stakeId);
     }
 
     function randBorrow(uint256 randUser, uint256 randAmount, uint256 randStakeId) public {
         User user = users[randUser % users.length];
 
         (uint256 totalAmount,, uint256 totalBorrowed) = hexOneVault.userInfos(address(user));
-        uint256 totalPossibleBorrowAmount = hexOnePriceFeedMock.consult(address(hexx), totalAmount, address(hex1));
+        uint256 hex1AmountOut = hexOnePriceFeedMock.consult(address(hexx), totalAmount, address(dai));
 
-        uint256 possibleBorrowAmount = totalPossibleBorrowAmount - totalBorrowed;
+        uint256 possibleBorrowAmount = hex1AmountOut - totalBorrowed;
 
         require(possibleBorrowAmount != 0);
 
@@ -236,20 +246,36 @@ contract HexOneProperties is PropertiesAsserts {
         (bool success,) =
             user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.borrow.selector, amount, stakeId));
         require(success);
+
+        emit LogAddress("User", address(user));
+        emit LogUint256("Borrow Amount", amount);
+        emit LogUint256("Stake ID", stakeId);
     }
 
     /// ----- HexOneStaking -----
-
     function randStake(uint256 randUser, uint256 randAmount, uint256 randStakeToken) public {
         User user = users[randUser % users.length];
 
         address token = stakeTokens[randStakeToken % stakeTokens.length];
-        uint256 amount = clampBetween(randAmount, 1, initialMintToken / 4);
+        uint256 amount = clampBetween(randAmount, 1, ERC20Mock(token).balanceOf(address(user)) / 100);
 
         (bool success,) = user.proxy(
             address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.stake.selector, token, amount)
         );
         require(success);
+
+        string tokenName;
+        if (address(token) == address(hex1)) {
+            tokenName = "Stake token: HEX1";
+        } else if (address(token) == address(hexit)) {
+            tokenName = "Stake token: HEXIT";
+        } else {
+            tokenName = "Stake token: HEX1/DAI LP";
+        }
+
+        emit LogAddress("User", address(user));
+        emit LogString(tokenName);
+        emit LogUint256("Stake amount", amount);
     }
 
     function randUnstake(uint256 randUser, uint256 randAmount, uint256 randStakeToken) public {
@@ -262,6 +288,19 @@ contract HexOneProperties is PropertiesAsserts {
             address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.unstake.selector, token, amount)
         );
         require(success);
+
+        string tokenName;
+        if (address(token) == address(hex1)) {
+            tokenName = "Unstake token: HEX1";
+        } else if (address(token) == address(hexit)) {
+            tokenName = "Unstake token: HEXIT";
+        } else {
+            tokenName = "Unstake token: HEX1/DAI LP";
+        }
+
+        emit LogAddress("User", address(user));
+        emit LogString(tokenName);
+        emit LogUint256("Unstake amount", amount);
     }
 
     function randClaimStaking(uint256 randUser, uint256 randStakeToken) public {
@@ -271,21 +310,49 @@ contract HexOneProperties is PropertiesAsserts {
         (bool success,) =
             user.proxy(address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.claim.selector, token));
         require(success);
-    }
-    /// ----- HexOneBootstrap -----
 
+        string tokenName;
+        if (address(token) == address(hex1)) {
+            tokenName = "Stake token: HEX1";
+        } else if (address(token) == address(hexit)) {
+            tokenName = "Stake token: HEXIT";
+        } else {
+            tokenName = "Stake token: HEX1/DAI LP";
+        }
+
+        emit LogAddress("User", address(user));
+        emit LogString(tokenName);
+    }
+
+    /// ----- HexOneBootstrap -----
     function randSacrifice(uint256 randUser, uint256 randToken, uint256 randAmountIn) public {
         User user = users[randUser % users.length];
 
         address token = sacrificeTokens[randToken % sacrificeTokens.length];
 
-        uint256 amount = clampBetween(randAmountIn, 1, (token == address(hexx) ? initialMintHex : initialMintToken) / 4);
+        uint256 amount =
+            clampBetween(randAmountIn, 1, (token == address(hexx) ? initialMintHex : initialMintToken) / 100);
 
         (bool success,) = user.proxy(
             address(hexOneBootstrap),
             abi.encodeWithSelector(hexOneBootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
         require(success);
+
+        string tokenName;
+        if (address(token) == address(hexx)) {
+            tokenName = "Sacrifice token: HEX";
+        } else if (address(token) == address(dai)) {
+            tokenName = "Sacrifice token: DAI";
+        } else if (address(token) == address(plsx)) {
+            tokenName = "Sacrifice token: PLSX";
+        } else {
+            tokenName = "Sacrifice token: WPLS";
+        }
+
+        emit LogAddress("User", address(user));
+        emit LogString(tokenName);
+        emit LogUint256("Sacrifice amount", amount);
     }
 
     function randClaimSacrifice(uint256 randUser) public {
@@ -294,6 +361,8 @@ contract HexOneProperties is PropertiesAsserts {
         (bool success,) =
             user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimSacrifice.selector));
         require(success);
+
+        emit LogAddress("User", address(user));
     }
 
     function randClaimAirdrop(uint256 randUser) public {
@@ -302,6 +371,8 @@ contract HexOneProperties is PropertiesAsserts {
         (bool success,) =
             user.proxy(address(hexOneBootstrap), abi.encodeWithSelector(hexOneBootstrap.claimAirdrop.selector));
         require(success);
+
+        emit LogAddress("User", address(user));
     }
 
     // admin calls
@@ -324,11 +395,11 @@ contract HexOneProperties is PropertiesAsserts {
     function randAddLiquidity(uint256 randUser, uint256 randAmount) public {
         User user = users[randUser % users.length];
 
-        uint256 hex1Amount = clampBetween(randAmount, 1, hex1.balanceOf(address(user)) / 4);
+        uint256 hex1Amount = clampBetween(randAmount, 1, hex1.balanceOf(address(user)) / 100);
         require(hex1Amount != 0);
         uint256 daiAmount = hexOnePriceFeedMock.consult(address(hex1), hex1Amount, address(dai));
 
-        (bool success,) = user.proxy(
+        (bool success, bytes memory data) = user.proxy(
             address(routerMock),
             abi.encodeWithSelector(
                 routerMock.addLiquidity.selector,
@@ -343,6 +414,13 @@ contract HexOneProperties is PropertiesAsserts {
             )
         );
         require(success);
+
+        (,, uint256 lpAmount) = abi.decode(data, (uint256, uint256, uint256));
+
+        emit LogAddress("User", address(user));
+        emit LogUint256("HEX1 amount", hex1Amount);
+        emit LogUint256("DAI amount", daiAmount);
+        emit LogUint256("LP amount", lpAmount);
     }
 
     /// ----- General state updates -----
