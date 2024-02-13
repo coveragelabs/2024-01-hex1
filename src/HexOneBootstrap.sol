@@ -409,6 +409,9 @@ contract HexOneBootstrap is IHexOneBootstrap, Ownable {
         UserInfo storage userInfo = userInfos[msg.sender];
         if (userInfo.claimedAirdrop) revert AirdropAlreadyClaimed(msg.sender);
 
+        // @audit-info fixed by the client
+        userInfo.claimedAirdrop = true;
+
         // calculate the amount to airdrop based on the amount
         // that the msg.sender has of staked HEX and sacrificed USD
         uint256 hexitShares = _calculateHexitAirdropShares();
