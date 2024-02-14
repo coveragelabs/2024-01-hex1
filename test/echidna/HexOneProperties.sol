@@ -207,14 +207,6 @@ contract HexOneProperties is PropertiesAsserts {
 
         (bool success,) = user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
         require(success);
-
-        /*
-        for (uint256 i = 0; i < userToStakeids[user].length; i++) {
-            if (userToStakeids[user][i] == stakeId) {
-                delete userToStakeids[user][i];
-                break;
-            }
-        }*/
     }
 
     function randLiquidate(uint256 randUser, uint256 randDepositor, uint256 randStakeId) public {
@@ -380,65 +372,6 @@ contract HexOneProperties is PropertiesAsserts {
 
     // ---------------------- Invariants ---------------------- (Here we will be defining all our invariants)
 
-    /*
-    /// @custom:invariant - HEXIT token emmission should never be more than the max emission.
-    function hexitEmissionIntegrity() public {}
-
-    function hexOneStakingDailyRewardsCannotExceed1Percent() public {
-        uint256 rewardShareMinThreshold = 95;
-        uint256 rewardShareMaxThreshold = 105;
-
-        (uint256 hexitTotalAssets, uint256 hexitDistributedAssets,, uint256 hexitCurrentStakingDay,) =
-            hexOneStakingWrap.pools(address(hexit));
-        uint256 hexitPoolLastSync = hexitCurrentStakingDay;
-        (, uint256 hexitAmountToDistribute) = hexOneStakingWrap.poolHistory(hexitPoolLastSync, address(hexit));
-        uint256 hexitRewards = hexitAmountToDistribute;
-        uint256 hexitAvailable = hexitTotalAssets - hexitDistributedAssets;
-        uint256 hexitRewardShare = (hexitRewards * 10_000) / hexitAvailable;
-
-        // Pool hexPool = hexOneStakingWrap.pools(address(hexx));
-        // uint256 hexxPoolLastSync = hexPool.currentStakingDay;
-        // PoolHistory hexxPoolHistory = hexOneStakingWrap.poolHistory(hexxPoolLastSync, address(hexx));
-        // uint256 hexxRewards = hexxPoolHistory.amountToDistribute;
-        // uint256 hexxAvailable = hexPool.totalAssets - hexPool.distributedAssets;
-        // uint256 hexxRewardShare = (hexxRewards * 10_000) / hexxAvailable;
-
-        assert(hexitRewardShare >= rewardShareMinThreshold && hexitRewardShare <= rewardShareMaxThreshold);
-        // assert(hexxRewardShare >= rewardShareMinThreshold && hexxRewardShare <= rewardShareMaxThreshold);
-    }
-
-    // function hexOneStakingSharesToGiveAlwaysProportionalToIncreaseInBalance(
-    //     uint256 randAmount,
-    //     uint256 randStakeToken
-    // ) {
-    //     uint256 offset = 100;
-
-    //     address token = stakeTokens[randStakeToken % stakeTokens.length];
-    //     uint256 amount = (randAmount % initialMint) / 1000 + 1;
-    //     uint256 shares = calculateShares(token, amount);
-
-    //     uint256 tokenStakingBalance = hexOneStakingWrap.totalStakedAmount(token);
-    //     uint256 tokenBalanceIncreaseFactor = ((amount + tokenStakingBalance) * 10_000) / tokenStakingBalance;
-
-    //     Pool hexPool = hexOneStakingWrap.pools(address(hexx));
-    //     uint256 hexTotalShares = hexPool.totalShares;
-    //     uint256 hexSharesIncreaseFactor = ((shares + hexTotalShares) * 10_000) / hexTotalShares;
-
-    //     Pool hexitPool = hexOneStakingWrap.pools(address(hexit));
-    //     uint256 hexitTotalShares = hexitPool.totalShares;
-    //     uint256 hexitSharesIncreaseFactor = ((shares + hexitTotalShares) * 10_000) / hexitTotalShares;
-
-    //     assert(
-    //         tokenBalanceIncreaseFactor >= hexSharesIncreaseFactor - offset
-    //             && tokenBalanceIncreaseFactor <= hexSharesIncreaseFactor + offset
-    //     );
-    //     assert(
-    //         tokenBalanceIncreaseFactor >= hexitSharesIncreaseFactor - offset
-    //             && tokenBalanceIncreaseFactor <= hexitSharesIncreaseFactor + offset
-    //     );
-    // }
-    */
-
     /// ----- HexOneVault -----
 
     /// @custom:invariant - Vault deposit must never be claimed if maturity has not passed
@@ -488,14 +421,6 @@ contract HexOneProperties is PropertiesAsserts {
 
         (bool success, bytes memory data) =
             user.proxy(address(hexOneVault), abi.encodeWithSelector(hexOneVault.claim.selector, stakeId));
-
-        /*
-        for (uint256 i = 0; i < userToStakeids[user].length; i++) {
-            if (userToStakeids[user][i] == stakeId) {
-                delete userToStakeids[user][i];
-                break;
-            }
-        }*/
 
         uint256 hexAmount = abi.decode(data, (uint256));
         (,, uint256 vaultBorrowedAfter,,,) = hexOneVault.depositInfos(address(user), stakeId);
@@ -595,7 +520,6 @@ contract HexOneProperties is PropertiesAsserts {
         assert(depositTotalBorrowed == userTotalBorrowed);
     }
 
-    /* NEED TO FIX
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
     function hexOneLiquidationsIntegrity() public {
         uint256 totalHexoneUsersAmount;
@@ -611,10 +535,10 @@ contract HexOneProperties is PropertiesAsserts {
         }
 
         assert(totalHexoneUsersAmount == totalHexoneProtocolAmount);
-    }*/
+    }
 
-    /*
     /// @custom:invariant - staking history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
+    // @audit-issue - Invariant broken
     function poolAmountStateIntegrity() public {
         for (uint256 i = 0; i < stakeTokens.length; i++) {
             (,,, uint256 currentStakingDay,) = hexOneStakingWrap.pools(address(stakeTokens[i]));
@@ -626,7 +550,6 @@ contract HexOneProperties is PropertiesAsserts {
             }
         }
     }
-    */
 
     /// ----- HexOneBootstrap -----
 
