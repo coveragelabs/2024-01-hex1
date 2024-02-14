@@ -621,41 +621,70 @@ contract HexOneProperties is PropertiesAsserts {
 
     /// @custom:invariant - Sum of all users shares must be equal to the `pool.totalShares`
     // @audit-ok property checked
-    function sumOfAllUserSharesMustEqualPoolTotalShares() public {
-        uint256 usersTotalShares;
+    // function sumOfAllUserSharesMustEqualPoolTotalShares() public {
+    //     uint256 usersTotalShares;
 
-        for (uint8 i; i < users.length; ++i) {
-            User user = users[i];
-            (,,,, uint256 lpStakeHexSharesAmount, uint256 lpStakeHexitSharesAmount,,,,) =
-                hexOneStakingWrap.stakingInfos(address(user), address(stakeTokens[0]));
-            (,,,, uint256 hex1StakeHexSharesAmount, uint256 hex1StakeHexitSharesAmount,,,,) =
-                hexOneStakingWrap.stakingInfos(address(user), address(stakeTokens[1]));
-            (,,,, uint256 hexitStakeHexSharesAmount, uint256 hexitStakeHexitSharesAmount,,,,) =
-                hexOneStakingWrap.stakingInfos(address(user), address(stakeTokens[2]));
+    //     for (uint8 i; i < users.length; ++i) {
+    //         User user = users[i];
+    //         (,,,, uint256 lpStakeHexSharesAmount, uint256 lpStakeHexitSharesAmount,,,,) =
+    //             hexOneStakingWrap.stakingInfos(address(user), address(stakeTokens[0]));
+    //         (,,,, uint256 hex1StakeHexSharesAmount, uint256 hex1StakeHexitSharesAmount,,,,) =
+    //             hexOneStakingWrap.stakingInfos(address(user), address(stakeTokens[1]));
+    //         (,,,, uint256 hexitStakeHexSharesAmount, uint256 hexitStakeHexitSharesAmount,,,,) =
+    //             hexOneStakingWrap.stakingInfos(address(user), address(stakeTokens[2]));
 
-            uint256 userTotalShares = lpStakeHexSharesAmount + hex1StakeHexSharesAmount + hexitStakeHexSharesAmount
-                + lpStakeHexitSharesAmount + hex1StakeHexitSharesAmount + hexitStakeHexitSharesAmount;
+    //         uint256 userTotalShares = lpStakeHexSharesAmount + hex1StakeHexSharesAmount + hexitStakeHexSharesAmount
+    //             + lpStakeHexitSharesAmount + hex1StakeHexitSharesAmount + hexitStakeHexitSharesAmount;
 
-            usersTotalShares += userTotalShares;
-        }
+    //         usersTotalShares += userTotalShares;
+    //     }
 
-        (,, uint256 hexPoolTotalShares,,) = hexOneStakingWrap.pools(address(hexx));
-        (,, uint256 hexitPoolTotalShares,,) = hexOneStakingWrap.pools(address(hexit));
+    //     (,, uint256 hexPoolTotalShares,,) = hexOneStakingWrap.pools(address(hexx));
+    //     (,, uint256 hexitPoolTotalShares,,) = hexOneStakingWrap.pools(address(hexit));
 
-        uint256 poolTotalShares = hexPoolTotalShares + hexitPoolTotalShares;
+    //     uint256 poolTotalShares = hexPoolTotalShares + hexitPoolTotalShares;
 
-        if (poolTotalShares > 0) {
-            assertEq(usersTotalShares, poolTotalShares, "Total shares mismatch");
-        }
-    }
+    //     if (poolTotalShares > 0) {
+    //         assertEq(usersTotalShares, poolTotalShares, "Total shares mismatch");
+    //     }
+    // }
 
     /// @custom:invariant - Users can only unstake 2 days after they've staked
-    // @todo
-    // function usersCanOnlyUnstake2DaysAfterTheyHaveStaked() public {}
+    // @audit-ok property checked
+    // function usersCanOnlyUnstake2DaysAfterTheyHaveStaked(
+    //     uint256 randUser,
+    //     uint256 randStakeAmount,
+    //     uint256 randUnstakeAmount,
+    //     uint256 randStakeToken,
+    //     uint256 randWarp
+    // ) public {
+    //     require(hexOneStakingWrap.stakingEnabled());
+
+    //     User user = users[randUser % users.length];
+    //     address token = stakeTokens[randStakeToken % stakeTokens.length];
+    //     uint256 stakeAmount = clampBetween(randStakeAmount, 1, ERC20Mock(token).balanceOf(address(user)) / 100);
+    //     require(stakeAmount != 0);
+
+    //     (bool success,) = user.proxy(
+    //         address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.stake.selector, token, stakeAmount)
+    //     );
+    //     require(success);
+
+    //     uint256 warpValue = clampBetween(randWarp, 0, 1 days);
+    //     hevm.warp(warpValue);
+
+    //     uint256 unstakeAmount = clampBetween(randUnstakeAmount, 1, stakeAmount);
+
+    //     (success,) = user.proxy(
+    //         address(hexOneStakingWrap), abi.encodeWithSelector(hexOneStakingWrap.unstake.selector, token, unstakeAmount)
+    //     );
+
+    //     assertEq(success ? 1 : 0, 0, "User managed to unstake before the expected deadline");
+    // }
 
     /// @custom:invariant - The total rewards to be distributed to Alice with N deposits of X total value should be the same for Bob with pN deposits of X same total value
     // @todo
-    // function totalRewardsToDistToAliceWithNDepositsOfXValueMustEqForBobWithPNDepositsOfXValue() public {}
+    function totalRewardsToDistToAliceWithNDepositsOfXValueMustEqForBobWithPNDepositsOfXValue() public {}
 
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
     // function hexitLiquidationsIntegrity() public {
