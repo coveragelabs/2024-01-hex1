@@ -13,5 +13,6 @@ contract CryticERC20InternalHarness is HexOneToken, CryticERC20BasicProperties, 
         _mint(USER3, INITIAL_BALANCE);
         // Setup total supply:
         initialSupply = totalSupply();
+        isMintableOrBurnable = true;
     }
 }
