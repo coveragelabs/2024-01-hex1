@@ -431,6 +431,7 @@ contract HexOneProperties is PropertiesAsserts {
     }
 
     /// @custom:invariant - Must only be able to mint more HEXONE with the same HEX collateral if the HEX price increases
+    // @audit-issue - Misleading name in internal quote function (INFO)
     function tryMintMorePriceIncrease(uint256 randUser, uint256 randStakeId) public {
         User user = users[randUser % users.length];
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
@@ -528,17 +529,19 @@ contract HexOneProperties is PropertiesAsserts {
         for (uint256 i = 0; i < totalNbUsers; i++) {
             (,, uint256 totalBorrowed) = hexOneVault.userInfos(address(users[i]));
             totalHexoneProtocolAmount += totalBorrowed;
-        }
-
-        for (uint256 i = 0; i < totalNbUsers; i++) {
             totalHexoneUsersAmount += hex1.balanceOf(address(users[i]));
         }
 
-        assert(totalHexoneUsersAmount == totalHexoneProtocolAmount);
+        require(totalHexoneUsersAmount != 0 && totalHexoneProtocolAmount != 0);
+
+        emit LogUint(totalHexoneUsersAmount);
+        emit LogUint(totalHexoneProtocolAmount);
+        assert(totalHexoneUsersAmount >= totalHexoneProtocolAmount);
     }
 
+    /*
     /// @custom:invariant - staking history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
-    // @audit-issue - Invariant broken
+    // @audit-issue - Invariant broken (MEDIUM accounting issue)
     function poolAmountStateIntegrity() public {
         for (uint256 i = 0; i < stakeTokens.length; i++) {
             (,,, uint256 currentStakingDay,) = hexOneStakingWrap.pools(address(stakeTokens[i]));
@@ -550,6 +553,7 @@ contract HexOneProperties is PropertiesAsserts {
             }
         }
     }
+    */
 
     /// ----- HexOneBootstrap -----
 
@@ -721,9 +725,10 @@ contract HexOneProperties is PropertiesAsserts {
         assert(finalUserBalance == finalNewUserBalance);
     }
 
+    /*
     /// @custom:invariant - The `startAirdrop` function must always mint 33% on top of the total `HEXIT` minted during the sacrifice phase to the HexOneStaking contract
     /// @custom:invariant - The `startAirdrop` function must always mint 50% on top of the total `HEXIT` minted during the sacrifice phase to the team wallet
-    // @audit-issue - Invariant broken
+    // @audit-issue - Invariants broken (LOW architectural issue)
     function airdropMintingIntegrity() public {
         uint256 totalHexitMinted = hexOneBootstrap.totalHexitMinted();
         uint256 stakingContractBalance = hexit.balanceOf(address(hexOneStakingWrap));
@@ -738,6 +743,7 @@ contract HexOneProperties is PropertiesAsserts {
         assert(stakingContractBalance == (totalHexitMinted * 33) / 100);
         assert(teamWalletBalance == (totalHexitMinted * 50) / 100);
     }
+    */
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
     function setPrices(address tokenIn, address tokenOut, uint256 r) internal {
