@@ -157,6 +157,7 @@ contract HexOneStaking is Ownable, ReentrancyGuard, IHexOneStaking {
     /// @param _amount of token being staked.
     function stake(address _stakeToken, uint256 _amount) external nonReentrant onlyWhenStakingEnabled {
         require(stakeTokens.contains(_stakeToken), "Token not allowed");
+        // require(_amount > 1e14, "Invalid staking amount"); // @audit-info Fixed
         require(_amount > 0, "Invalid staking amount");
 
         // accrue rewards and update history for both the HEX and HEXIT pools
@@ -299,12 +300,22 @@ contract HexOneStaking is Ownable, ReentrancyGuard, IHexOneStaking {
         }
 
         // calculate the amount of HEX and HEXIT rewards since the last day claimed
-        (uint256 hexRewards, uint256 hexitRewards) = _calculateRewards(_user, _stakeToken);
-
-        // increment the rewards accrued as unclaimed rewards
+        // @audit-info Fixed by the client
         StakeInfo storage stakeInfo = stakingInfos[_user][_stakeToken];
-        stakeInfo.unclaimedHex += hexRewards;
-        stakeInfo.unclaimedHexit += hexitRewards;
+        if (stakeInfo.hexSharesAmount > 0 && stakeInfo.hexitSharesAmount > 0) {
+            (uint256 hexRewards, uint256 hexitRewards) = _calculateRewards(_user, _stakeToken);
+
+            // increment the rewards accrued as unclaimed rewards
+            stakeInfo.unclaimedHex += hexRewards;
+            stakeInfo.unclaimedHexit += hexitRewards;
+        }
+        // @audit-info Old version
+        // (uint256 hexRewards, uint256 hexitRewards) = _calculateRewards(_user, _stakeToken);
+
+        // // increment the rewards accrued as unclaimed rewards
+        // StakeInfo storage stakeInfo = stakingInfos[_user][_stakeToken];
+        // stakeInfo.unclaimedHex += hexRewards;
+        // stakeInfo.unclaimedHexit += hexitRewards;
     }
 
     /// @dev updates daily rewards since they were last updated
@@ -319,33 +330,33 @@ contract HexOneStaking is Ownable, ReentrancyGuard, IHexOneStaking {
 
             // @audit-info Fixed by the client
             // store the total shares emitted by the pool at a specific day
-            history.totalShares = pool.totalShares;
-            uint256 availableAssets = pool.totalAssets - pool.distributedAssets;
-            history.availableAssets = availableAssets;
+            // history.totalShares = pool.totalShares;
+            // uint256 availableAssets = pool.totalAssets - pool.distributedAssets;
+            // history.availableAssets = availableAssets;
 
-            if (pool.totalShares != 0) {
-                // calculate the amount of pool token to distribute for a specific staking day
-                uint256 amountToDistribute = (availableAssets * pool.distributionRate) / FIXED_POINT;
-                history.amountToDistribute = amountToDistribute;
+            // if (pool.totalShares != 0) {
+            //     // calculate the amount of pool token to distribute for a specific staking day
+            //     uint256 amountToDistribute = (availableAssets * pool.distributionRate) / FIXED_POINT;
+            //     history.amountToDistribute = amountToDistribute;
 
-                // increment the distributedAssets by the pool
-                pool.distributedAssets += amountToDistribute;
-            } else {
-                history.amountToDistribute = 0;
-            }
+            //     // increment the distributedAssets by the pool
+            //     pool.distributedAssets += amountToDistribute;
+            // } else {
+            //     history.amountToDistribute = 0;
+            // }
             // @audit-info Fixed by the client - END
 
             // @audit-info Old version
-            // // store the total shares emitted by the pool at a specific day
-            // history.totalShares = pool.totalShares;
+            // store the total shares emitted by the pool at a specific day
+            history.totalShares = pool.totalShares;
 
-            // // calculate the amount of pool token to distribute for a specific staking day
-            // uint256 availableAssets = pool.totalAssets - pool.distributedAssets;
-            // uint256 amountToDistribute = (availableAssets * pool.distributionRate) / FIXED_POINT;
-            // history.amountToDistribute = amountToDistribute;
+            // calculate the amount of pool token to distribute for a specific staking day
+            uint256 availableAssets = pool.totalAssets - pool.distributedAssets;
+            uint256 amountToDistribute = (availableAssets * pool.distributionRate) / FIXED_POINT;
+            history.amountToDistribute = amountToDistribute;
 
-            // // increment the distributedAssets by the pool
-            // pool.distributedAssets += amountToDistribute;
+            // increment the distributedAssets by the pool
+            pool.distributedAssets += amountToDistribute;
             // @audit-info Old version - END
 
             // increment the staking day in which the pool rewards were last updated
@@ -354,9 +365,11 @@ contract HexOneStaking is Ownable, ReentrancyGuard, IHexOneStaking {
         pool.currentStakingDay = currentStakingDay;
     }
 
+    event StakeShares(string, uint256);
     /// @dev calculates HEX and HEXIT rewards since the user last claimed.
     /// @param _user address of the user.
     /// @param _stakeToken address of the stake token.
+
     function _calculateRewards(address _user, address _stakeToken)
         internal
         returns (uint256 hexRewards, uint256 hexitRewards)
@@ -367,6 +380,7 @@ contract HexOneStaking is Ownable, ReentrancyGuard, IHexOneStaking {
         while (lastClaimedDay < getCurrentStakingDay()) {
             // calculate HEX rewards for that day
             PoolHistory storage hexHistory = poolHistory[lastClaimedDay][hexToken];
+            emit StakeShares("HEX history total shares", hexHistory.totalShares);
             uint256 hexSharesRatio = stakeInfo.hexSharesAmount * FIXED_POINT / hexHistory.totalShares;
             hexRewards += (hexHistory.amountToDistribute * hexSharesRatio) / FIXED_POINT;
 
