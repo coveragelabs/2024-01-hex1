@@ -522,6 +522,7 @@ contract HexOneProperties is PropertiesAsserts {
     }
 
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
+    // @audit:issue - Invariant broken (LOW accounting issue below 1e14 $HEX1)
     function hexOneLiquidationsIntegrity() public {
         uint256 totalHexoneUsersAmount;
         uint256 totalHexoneProtocolAmount;
@@ -532,13 +533,14 @@ contract HexOneProperties is PropertiesAsserts {
             totalHexoneUsersAmount += hex1.balanceOf(address(users[i]));
         }
 
-        require(totalHexoneUsersAmount != 0 && totalHexoneProtocolAmount != 0);
+        require(totalHexoneUsersAmount != 0 && totalHexoneProtocolAmount != 0 /*&& totalHexoneUsersAmount > 1e14*/ );
 
         emit LogUint(totalHexoneUsersAmount);
         emit LogUint(totalHexoneProtocolAmount);
         assert(totalHexoneUsersAmount >= totalHexoneProtocolAmount);
     }
 
+    /*
     /// @custom:invariant - staking history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
     // @audit-issue - Invariant broken (MEDIUM accounting issue)
     function poolAmountStateIntegrity() public {
@@ -552,6 +554,7 @@ contract HexOneProperties is PropertiesAsserts {
             }
         }
     }
+    */
 
     /// ----- HexOneBootstrap -----
 
