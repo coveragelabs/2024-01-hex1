@@ -539,7 +539,6 @@ contract HexOneProperties is PropertiesAsserts {
         assert(totalHexoneUsersAmount >= totalHexoneProtocolAmount);
     }
 
-    /*
     /// @custom:invariant - staking history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
     // @audit-issue - Invariant broken (MEDIUM accounting issue)
     function poolAmountStateIntegrity() public {
@@ -548,12 +547,11 @@ contract HexOneProperties is PropertiesAsserts {
             (,, uint256 totalShares,,) = hexOneStakingWrap.pools(address(stakeTokens[i]));
             (, uint256 amountToDistribute) = hexOneStakingWrap.poolHistory(currentStakingDay, address(stakeTokens[i]));
 
-            if (totalShares == 0 || amountToDistribute == 0) {
+            if (totalShares == 0) {
                 assert(totalShares == amountToDistribute);
             }
         }
     }
-    */
 
     /// ----- HexOneBootstrap -----
 
