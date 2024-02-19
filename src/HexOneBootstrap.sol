@@ -168,6 +168,7 @@ contract HexOneBootstrap is IHexOneBootstrap, Ownable {
     /// @notice can only be called by the protocol owner and can not be a timestamp in the past.
     /// @param _sacrificeStart timestamp in which the sacrifice is starting.
     function setSacrificeStart(uint256 _sacrificeStart) external onlyOwner {
+        if (sacrificeStart != 0) revert SacrificeStartAlreadySet(); // @audit-info Fixed by the client
         if (_sacrificeStart < block.timestamp) revert InvalidTimestamp(block.timestamp);
         sacrificeStart = _sacrificeStart;
         sacrificeEnd = _sacrificeStart + SACRIFICE_DURATION;
@@ -188,7 +189,10 @@ contract HexOneBootstrap is IHexOneBootstrap, Ownable {
         if (block.timestamp < airdropStart) revert AirdropHasNotStartedYet(block.timestamp);
         if (block.timestamp >= airdropEnd) revert AirdropAlreadyEnded(block.timestamp);
 
-        return ((block.timestamp) - airdropStart / 1 days) + 1;
+        // @audit-info Fixed by the client
+        return ((block.timestamp - airdropStart) / 1 days) + 1;
+        // @audit-info Old version
+        // return ((block.timestamp) - airdropStart / 1 days) + 1;
     }
 
     /// @dev allows user to participate in the sacrifice.
@@ -355,7 +359,7 @@ contract HexOneBootstrap is IHexOneBootstrap, Ownable {
     }
 
     /// @dev mints 33% on top of the total hexit minted during sacrifice to the staking
-    /// contract and an addittional 
+    /// contract and an addittional
     /// @notice can only be called by the owner of the contract.
     function startAidrop() external onlyOwner {
         if (block.timestamp < sacrificeClaimPeriodEnd) revert SacrificeClaimPeriodHasNotFinished(block.timestamp);
@@ -404,6 +408,9 @@ contract HexOneBootstrap is IHexOneBootstrap, Ownable {
         // check if the sender already claimed the airdrop
         UserInfo storage userInfo = userInfos[msg.sender];
         if (userInfo.claimedAirdrop) revert AirdropAlreadyClaimed(msg.sender);
+
+        // @audit-info fixed by the client
+        userInfo.claimedAirdrop = true;
 
         // calculate the amount to airdrop based on the amount
         // that the msg.sender has of staked HEX and sacrificed USD
@@ -502,7 +509,10 @@ contract HexOneBootstrap is IHexOneBootstrap, Ownable {
 
         baseHexit = AIRDROP_HEXIT_INIT_AMOUNT;
         for (uint256 i = 2; i <= currentAirdropDay; ++i) {
-            baseHexit = (baseHexit * SACRIFICE_DECREASE_FACTOR) / FIXED_POINT;
+            // @audit-info Fixed by the client
+            baseHexit = (baseHexit * AIRDROP_DECREASE_FACTOR) / FIXED_POINT;
+            // @audit-info Old version
+            // baseHexit = (baseHexit * SACRIFICE_DECREASE_FACTOR) / FIXED_POINT;
         }
     }
 
