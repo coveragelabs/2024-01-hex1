@@ -47,7 +47,7 @@ contract DexRouterMock {
         ERC20Mock(hex1).transferFrom(msg.sender, address(this), hex1Amount);
         ERC20Mock(dai).transferFrom(msg.sender, address(this), daiAmount);
         ERC20Mock(hex1dai).mint(msg.sender, hex1Amount);
-        return (hex1Amount, daiAmount, 1);
+        return (hex1Amount, daiAmount, hex1Amount);
     }
 }
 

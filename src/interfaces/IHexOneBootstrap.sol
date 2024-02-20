@@ -47,4 +47,6 @@ interface IHexOneBootstrap {
     error AirdropAlreadyStarted();
     error AirdropAlreadyClaimed(address sender);
     error IneligibleForAirdrop(address sender);
+    // @audit-info Fixed by the client
+    error SacrificeStartAlreadySet();
 }
