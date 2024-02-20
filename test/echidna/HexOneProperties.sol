@@ -367,7 +367,7 @@ contract HexOneProperties is PropertiesAsserts {
         (uint256 stakeId,,) = abi.decode(data, (uint256, uint256, uint256));
 
         userToStakeids[user].push(stakeId);
-        
+
         emit LogAddress("User", address(user));
     }
 
@@ -447,7 +447,6 @@ contract HexOneProperties is PropertiesAsserts {
     }
 
     // ---------------------- Invariants ---------------------- (Here we will be defining all our invariants)
-
 
     /// @custom:invariant - HEXIT token emmission should never be more than the max emission.
     // function hexitEmissionIntegrity() public {}
@@ -572,7 +571,6 @@ contract HexOneProperties is PropertiesAsserts {
             emit LogUint256("SIF", hexitSharesIncreaseFactor);
         }
     }
-
 
     /// @custom:invariant - Users cannot unstake more than what they staked (excluding rewards)
     // @audit-ok property checked
@@ -788,8 +786,7 @@ contract HexOneProperties is PropertiesAsserts {
         // cleanup state for the following invariants
         setupCleanup(alice, bob, token);
     }
-    */
-    
+
     /// ----- HexOneVault -----
 
     /// @custom:invariant - Vault deposit must never be claimed if maturity has not passed
@@ -810,7 +807,7 @@ contract HexOneProperties is PropertiesAsserts {
         uint256 amount = clampBetween(randAmount, 1, initialMintHex / 100);
         uint16 duration = uint16(clampBetween(randDuration, hexOneVault.MIN_DURATION(), hexOneVault.MAX_DURATION()));
 
-        emit LogUint(duration);
+        emit LogUint256("Vault deposit duration", duration);
 
         uint16 fee = 50;
         uint16 fixed_point = 1000;
@@ -917,8 +914,8 @@ contract HexOneProperties is PropertiesAsserts {
 
         (uint256 userTotalAmount,,) = hexOneVault.userInfos(address(user));
 
-        emit LogUint(depositTotalAmount);
-        emit LogUint(userTotalAmount);
+        emit LogUint256("Total user Vault deposit amount", depositTotalAmount);
+        emit LogUint256("User struct Vault deposit amount", userTotalAmount);
         assert(depositTotalAmount == userTotalAmount);
     }
 
@@ -934,8 +931,8 @@ contract HexOneProperties is PropertiesAsserts {
 
         (,, uint256 userTotalBorrowed) = hexOneVault.userInfos(address(user));
 
-        emit LogUint(depositTotalBorrowed);
-        emit LogUint(userTotalBorrowed);
+        emit LogUint256("Total DepositInfo.borrowed", depositTotalBorrowed);
+        emit LogUint256("UserInfo.totalBorrowed", userTotalBorrowed);
         assert(depositTotalBorrowed == userTotalBorrowed);
     }
 
@@ -951,10 +948,10 @@ contract HexOneProperties is PropertiesAsserts {
             totalHexoneUsersAmount += hex1.balanceOf(address(users[i]));
         }
 
-        require(totalHexoneUsersAmount != 0 && totalHexoneProtocolAmount != 0 /*&& totalHexoneUsersAmount > 1e14*/ );
+        require(totalHexoneUsersAmount != 0 && totalHexoneProtocolAmount != 0 && totalHexoneUsersAmount > 1e14);
 
-        emit LogUint(totalHexoneUsersAmount);
-        emit LogUint(totalHexoneProtocolAmount);
+        emit LogUint256("Total user HEX1 blances", totalHexoneUsersAmount);
+        emit LogUint256("Total user borrows on struct", totalHexoneProtocolAmount);
         assert(totalHexoneUsersAmount >= totalHexoneProtocolAmount);
     }
 
