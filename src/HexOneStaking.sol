@@ -354,6 +354,8 @@ contract HexOneStaking is Ownable, ReentrancyGuard, IHexOneStaking {
             uint256 availableAssets = pool.totalAssets - pool.distributedAssets;
             uint256 amountToDistribute = (availableAssets * pool.distributionRate) / FIXED_POINT;
             history.amountToDistribute = amountToDistribute;
+            // @audit-info necessary fix
+            history.availableAssets = availableAssets;
 
             // increment the distributedAssets by the pool
             pool.distributedAssets += amountToDistribute;

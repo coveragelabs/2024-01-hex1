@@ -450,11 +450,6 @@ contract HexOneProperties is PropertiesAsserts {
     /// @custom:invariant - Daily distributed rewards must be equal to 1% (HEXIT).
     // @audit-ok property checked
     function dailyDistributedHexitRewardsMustBeEqualTo1Percent() public {
-        // min threshold = 98 bps = 0,98%
-        uint256 rewardShareMinThreshold = 98;
-        // max threshold = 102 bps = 1,02%
-        uint256 rewardShareMaxThreshold = 102;
-
         (,,, uint256 currentStakingDay,) = hexOneStakingWrap.pools(address(hexit));
 
         if (currentStakingDay > 0) {
@@ -463,8 +458,8 @@ contract HexOneProperties is PropertiesAsserts {
             uint256 share = (amountToDistribute * 10_000) / availableAssets;
 
             if (amountToDistribute > 0) {
-                assertGte(share, rewardShareMinThreshold, "HEXIT rewards distributed daily were below 1%");
-                assertLte(share, rewardShareMaxThreshold, "HEXIT rewards distributed daily exceeded 1%");
+                assertGte(share, 98, "HEXIT daily rewards should be equal to 1%");
+                assertLte(share, 102, "HEXIT daily rewards should be equal to 1%");
             }
         }
     }
@@ -472,11 +467,6 @@ contract HexOneProperties is PropertiesAsserts {
     /// @custom:invariant - Daily distributed rewards must be equal to 1% (HEX).
     // @audit-ok property checked
     function dailyDistributedHexRewardsMustBeEqualTo1Percent() public {
-        // min threshold = 98 bps = 0,98%
-        uint256 rewardShareMinThreshold = 100;
-        // max threshold = 102 bps = 1,02%
-        uint256 rewardShareMaxThreshold = 100;
-
         (,,, uint256 currentStakingDay,) = hexOneStakingWrap.pools(address(hexx));
 
         if (currentStakingDay > 0) {
@@ -485,14 +475,14 @@ contract HexOneProperties is PropertiesAsserts {
             uint256 share = (amountToDistribute * 10_000) / availableAssets;
 
             if (amountToDistribute > 0) {
-                assertGte(share, rewardShareMinThreshold, "HEX rewards distributed daily were below 1%");
-                assertLte(share, rewardShareMaxThreshold, "HEX rewards distributed daily exceeded 1%");
+                assertGte(share, 98, "HEX daily rewards should be equal to 1%");
+                assertLte(share, 102, "HEX daily rewards should be equal to 1%");
             }
         }
     }
 
     /// @custom:invariant - Pool shares to give are always proportional to the increase in balance of a stake token based on the weight (HEX).
-    // @audit-ok property checked
+    // @audit-issue property broken
     function hexPoolSharesToGiveAreAlwaysProportionalToIncreaseInBalance(
         uint256 randUser,
         uint256 randAmount,
@@ -522,13 +512,12 @@ contract HexOneProperties is PropertiesAsserts {
                 totalShares - ((xTokenBalance * xTokenWeight) / 1000) - ((yTokenBalance * yTokenWeight) / 1000);
             uint256 hexSharesIncreaseFactor = ((shares + stakeTokenTotalShares) * 10_000) / stakeTokenTotalShares;
 
-            assertGte(stakeTokenBalanceIncreaseFactor, hexSharesIncreaseFactor - 100, "Not proportional");
-            assertLte(stakeTokenBalanceIncreaseFactor, hexSharesIncreaseFactor + 100, "Not proportional");
+            assertEq(stakeTokenBalanceIncreaseFactor, hexSharesIncreaseFactor, "Not proportional");
         }
     }
 
     /// @custom:invariant - Pool shares to give are always proportional to the increase in balance of a stake token based on the weight (HEXIT).
-    // @audit-ok property checked
+    // @audit-issue property broken
     function hexitPoolSharesToGiveAreAlwaysProportionalToIncreaseInBalance(
         uint256 randUser,
         uint256 randAmount,
@@ -558,11 +547,7 @@ contract HexOneProperties is PropertiesAsserts {
                 totalShares - ((xTokenBalance * xTokenWeight) / 1000) - ((yTokenBalance * yTokenWeight) / 1000);
             uint256 hexitSharesIncreaseFactor = ((shares + stakeTokenTotalShares) * 10_000) / stakeTokenTotalShares;
 
-            assertGte(stakeTokenBalanceIncreaseFactor, hexitSharesIncreaseFactor - 100, "Not proportional");
-            assertLte(stakeTokenBalanceIncreaseFactor, hexitSharesIncreaseFactor + 100, "Not proportional");
-
-            emit LogUint256("BIF", stakeTokenBalanceIncreaseFactor);
-            emit LogUint256("SIF", hexitSharesIncreaseFactor);
+            assertEq(stakeTokenBalanceIncreaseFactor, hexitSharesIncreaseFactor, "Not proportional");
         }
     }
 
