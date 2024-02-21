@@ -3,9 +3,6 @@ pragma solidity ^0.8.20;
 
 import "../Base.t.sol";
 
-/**
- *  @dev forge test --match-contract BootstrapFuzzTest --rpc-url "https://rpc.pulsechain.com" -vvv
- */
 contract BootstrapHelper is Base {
     function _dealToken(address _token, address _recipient, uint256 _amount) internal {
         if (_token == plsxToken) {

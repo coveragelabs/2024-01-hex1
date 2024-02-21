@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "../Base.t.sol";
-import "./BootstrapHelper.sol";
+import "./utils/BootstrapHelper.sol";
 import "../../src/interfaces/IHexToken.sol";
 
 contract AirdropNoStateUpdateTest is BootstrapHelper {

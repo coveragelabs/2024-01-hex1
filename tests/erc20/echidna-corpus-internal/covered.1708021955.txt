@@ -1,0 +1,1408 @@
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/lib/openzeppelin-contracts/contracts/access/Ownable.sol
+   1 |     | // SPDX-License-Identifier: MIT
+   2 |     | // OpenZeppelin Contracts (last updated v5.0.0) (access/Ownable.sol)
+   3 |     | 
+   4 |     | pragma solidity ^0.8.20;
+   5 |     | 
+   6 |     | import {Context} from "../utils/Context.sol";
+   7 |     | 
+   8 |     | /**
+   9 |     |  * @dev Contract module which provides a basic access control mechanism, where
+  10 |     |  * there is an account (an owner) that can be granted exclusive access to
+  11 |     |  * specific functions.
+  12 |     |  *
+  13 |     |  * The initial owner is set to the address provided by the deployer. This can
+  14 |     |  * later be changed with {transferOwnership}.
+  15 |     |  *
+  16 |     |  * This module is used through inheritance. It will make available the modifier
+  17 |     |  * `onlyOwner`, which can be applied to your functions to restrict their use to
+  18 |     |  * the owner.
+  19 |     |  */
+  20 |     | abstract contract Ownable is Context {
+  21 |     |     address private _owner;
+  22 |     | 
+  23 |     |     /**
+  24 |     |      * @dev The caller account is not authorized to perform an operation.
+  25 |     |      */
+  26 |     |     error OwnableUnauthorizedAccount(address account);
+  27 |     | 
+  28 |     |     /**
+  29 |     |      * @dev The owner is not a valid owner account. (eg. `address(0)`)
+  30 |     |      */
+  31 |     |     error OwnableInvalidOwner(address owner);
+  32 |     | 
+  33 |     |     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+  34 |     | 
+  35 |     |     /**
+  36 |     |      * @dev Initializes the contract setting the address provided by the deployer as the initial owner.
+  37 |     |      */
+  38 |     |     constructor(address initialOwner) {
+  39 |     |         if (initialOwner == address(0)) {
+  40 |     |             revert OwnableInvalidOwner(address(0));
+  41 |     |         }
+  42 |     |         _transferOwnership(initialOwner);
+  43 |     |     }
+  44 |     | 
+  45 |     |     /**
+  46 |     |      * @dev Throws if called by any account other than the owner.
+  47 |     |      */
+  48 |     |     modifier onlyOwner() {
+  49 | *   |         _checkOwner();
+  50 |     |         _;
+  51 |     |     }
+  52 |     | 
+  53 |     |     /**
+  54 |     |      * @dev Returns the address of the current owner.
+  55 |     |      */
+  56 | *   |     function owner() public view virtual returns (address) {
+  57 | *   |         return _owner;
+  58 |     |     }
+  59 |     | 
+  60 |     |     /**
+  61 |     |      * @dev Throws if the sender is not the owner.
+  62 |     |      */
+  63 | *   |     function _checkOwner() internal view virtual {
+  64 | *   |         if (owner() != _msgSender()) {
+  65 | *   |             revert OwnableUnauthorizedAccount(_msgSender());
+  66 |     |         }
+  67 |     |     }
+  68 |     | 
+  69 |     |     /**
+  70 |     |      * @dev Leaves the contract without owner. It will not be possible to call
+  71 |     |      * `onlyOwner` functions. Can only be called by the current owner.
+  72 |     |      *
+  73 |     |      * NOTE: Renouncing ownership will leave the contract without an owner,
+  74 |     |      * thereby disabling any functionality that is only available to the owner.
+  75 |     |      */
+  76 | *   |     function renounceOwnership() public virtual onlyOwner {
+  77 | *   |         _transferOwnership(address(0));
+  78 |     |     }
+  79 |     | 
+  80 |     |     /**
+  81 |     |      * @dev Transfers ownership of the contract to a new account (`newOwner`).
+  82 |     |      * Can only be called by the current owner.
+  83 |     |      */
+  84 | *   |     function transferOwnership(address newOwner) public virtual onlyOwner {
+  85 | *   |         if (newOwner == address(0)) {
+  86 | *r  |             revert OwnableInvalidOwner(address(0));
+  87 |     |         }
+  88 | *   |         _transferOwnership(newOwner);
+  89 |     |     }
+  90 |     | 
+  91 |     |     /**
+  92 |     |      * @dev Transfers ownership of the contract to a new account (`newOwner`).
+  93 |     |      * Internal function without access restriction.
+  94 |     |      */
+  95 | *   |     function _transferOwnership(address newOwner) internal virtual {
+  96 | *   |         address oldOwner = _owner;
+  97 | *   |         _owner = newOwner;
+  98 | *   |         emit OwnershipTransferred(oldOwner, newOwner);
+  99 |     |     }
+ 100 |     | }
+ 101 |     | 
+
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol
+   1 |     | // SPDX-License-Identifier: MIT
+   2 |     | // OpenZeppelin Contracts (last updated v5.0.0) (interfaces/draft-IERC6093.sol)
+   3 |     | pragma solidity ^0.8.20;
+   4 |     | 
+   5 |     | /**
+   6 |     |  * @dev Standard ERC20 Errors
+   7 |     |  * Interface of the https://eips.ethereum.org/EIPS/eip-6093[ERC-6093] custom errors for ERC20 tokens.
+   8 |     |  */
+   9 |     | interface IERC20Errors {
+  10 |     |     /**
+  11 |     |      * @dev Indicates an error related to the current `balance` of a `sender`. Used in transfers.
+  12 |     |      * @param sender Address whose tokens are being transferred.
+  13 |     |      * @param balance Current balance for the interacting account.
+  14 |     |      * @param needed Minimum amount required to perform a transfer.
+  15 |     |      */
+  16 |     |     error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed);
+  17 |     | 
+  18 |     |     /**
+  19 |     |      * @dev Indicates a failure with the token `sender`. Used in transfers.
+  20 |     |      * @param sender Address whose tokens are being transferred.
+  21 |     |      */
+  22 |     |     error ERC20InvalidSender(address sender);
+  23 |     | 
+  24 |     |     /**
+  25 |     |      * @dev Indicates a failure with the token `receiver`. Used in transfers.
+  26 |     |      * @param receiver Address to which tokens are being transferred.
+  27 |     |      */
+  28 |     |     error ERC20InvalidReceiver(address receiver);
+  29 |     | 
+  30 |     |     /**
+  31 |     |      * @dev Indicates a failure with the `spender`’s `allowance`. Used in transfers.
+  32 |     |      * @param spender Address that may be allowed to operate on tokens without being their owner.
+  33 |     |      * @param allowance Amount of tokens a `spender` is allowed to operate with.
+  34 |     |      * @param needed Minimum amount required to perform a transfer.
+  35 |     |      */
+  36 |     |     error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed);
+  37 |     | 
+  38 |     |     /**
+  39 |     |      * @dev Indicates a failure with the `approver` of a token to be approved. Used in approvals.
+  40 |     |      * @param approver Address initiating an approval operation.
+  41 |     |      */
+  42 |     |     error ERC20InvalidApprover(address approver);
+  43 |     | 
+  44 |     |     /**
+  45 |     |      * @dev Indicates a failure with the `spender` to be approved. Used in approvals.
+  46 |     |      * @param spender Address that may be allowed to operate on tokens without being their owner.
+  47 |     |      */
+  48 |     |     error ERC20InvalidSpender(address spender);
+  49 |     | }
+  50 |     | 
+  51 |     | /**
+  52 |     |  * @dev Standard ERC721 Errors
+  53 |     |  * Interface of the https://eips.ethereum.org/EIPS/eip-6093[ERC-6093] custom errors for ERC721 tokens.
+  54 |     |  */
+  55 |     | interface IERC721Errors {
+  56 |     |     /**
+  57 |     |      * @dev Indicates that an address can't be an owner. For example, `address(0)` is a forbidden owner in EIP-20.
+  58 |     |      * Used in balance queries.
+  59 |     |      * @param owner Address of the current owner of a token.
+  60 |     |      */
+  61 |     |     error ERC721InvalidOwner(address owner);
+  62 |     | 
+  63 |     |     /**
+  64 |     |      * @dev Indicates a `tokenId` whose `owner` is the zero address.
+  65 |     |      * @param tokenId Identifier number of a token.
+  66 |     |      */
+  67 |     |     error ERC721NonexistentToken(uint256 tokenId);
+  68 |     | 
+  69 |     |     /**
+  70 |     |      * @dev Indicates an error related to the ownership over a particular token. Used in transfers.
+  71 |     |      * @param sender Address whose tokens are being transferred.
+  72 |     |      * @param tokenId Identifier number of a token.
+  73 |     |      * @param owner Address of the current owner of a token.
+  74 |     |      */
+  75 |     |     error ERC721IncorrectOwner(address sender, uint256 tokenId, address owner);
+  76 |     | 
+  77 |     |     /**
+  78 |     |      * @dev Indicates a failure with the token `sender`. Used in transfers.
+  79 |     |      * @param sender Address whose tokens are being transferred.
+  80 |     |      */
+  81 |     |     error ERC721InvalidSender(address sender);
+  82 |     | 
+  83 |     |     /**
+  84 |     |      * @dev Indicates a failure with the token `receiver`. Used in transfers.
+  85 |     |      * @param receiver Address to which tokens are being transferred.
+  86 |     |      */
+  87 |     |     error ERC721InvalidReceiver(address receiver);
+  88 |     | 
+  89 |     |     /**
+  90 |     |      * @dev Indicates a failure with the `operator`’s approval. Used in transfers.
+  91 |     |      * @param operator Address that may be allowed to operate on tokens without being their owner.
+  92 |     |      * @param tokenId Identifier number of a token.
+  93 |     |      */
+  94 |     |     error ERC721InsufficientApproval(address operator, uint256 tokenId);
+  95 |     | 
+  96 |     |     /**
+  97 |     |      * @dev Indicates a failure with the `approver` of a token to be approved. Used in approvals.
+  98 |     |      * @param approver Address initiating an approval operation.
+  99 |     |      */
+ 100 |     |     error ERC721InvalidApprover(address approver);
+ 101 |     | 
+ 102 |     |     /**
+ 103 |     |      * @dev Indicates a failure with the `operator` to be approved. Used in approvals.
+ 104 |     |      * @param operator Address that may be allowed to operate on tokens without being their owner.
+ 105 |     |      */
+ 106 |     |     error ERC721InvalidOperator(address operator);
+ 107 |     | }
+ 108 |     | 
+ 109 |     | /**
+ 110 |     |  * @dev Standard ERC1155 Errors
+ 111 |     |  * Interface of the https://eips.ethereum.org/EIPS/eip-6093[ERC-6093] custom errors for ERC1155 tokens.
+ 112 |     |  */
+ 113 |     | interface IERC1155Errors {
+ 114 |     |     /**
+ 115 |     |      * @dev Indicates an error related to the current `balance` of a `sender`. Used in transfers.
+ 116 |     |      * @param sender Address whose tokens are being transferred.
+ 117 |     |      * @param balance Current balance for the interacting account.
+ 118 |     |      * @param needed Minimum amount required to perform a transfer.
+ 119 |     |      * @param tokenId Identifier number of a token.
+ 120 |     |      */
+ 121 |     |     error ERC1155InsufficientBalance(address sender, uint256 balance, uint256 needed, uint256 tokenId);
+ 122 |     | 
+ 123 |     |     /**
+ 124 |     |      * @dev Indicates a failure with the token `sender`. Used in transfers.
+ 125 |     |      * @param sender Address whose tokens are being transferred.
+ 126 |     |      */
+ 127 |     |     error ERC1155InvalidSender(address sender);
+ 128 |     | 
+ 129 |     |     /**
+ 130 |     |      * @dev Indicates a failure with the token `receiver`. Used in transfers.
+ 131 |     |      * @param receiver Address to which tokens are being transferred.
+ 132 |     |      */
+ 133 |     |     error ERC1155InvalidReceiver(address receiver);
+ 134 |     | 
+ 135 |     |     /**
+ 136 |     |      * @dev Indicates a failure with the `operator`’s approval. Used in transfers.
+ 137 |     |      * @param operator Address that may be allowed to operate on tokens without being their owner.
+ 138 |     |      * @param owner Address of the current owner of a token.
+ 139 |     |      */
+ 140 |     |     error ERC1155MissingApprovalForAll(address operator, address owner);
+ 141 |     | 
+ 142 |     |     /**
+ 143 |     |      * @dev Indicates a failure with the `approver` of a token to be approved. Used in approvals.
+ 144 |     |      * @param approver Address initiating an approval operation.
+ 145 |     |      */
+ 146 |     |     error ERC1155InvalidApprover(address approver);
+ 147 |     | 
+ 148 |     |     /**
+ 149 |     |      * @dev Indicates a failure with the `operator` to be approved. Used in approvals.
+ 150 |     |      * @param operator Address that may be allowed to operate on tokens without being their owner.
+ 151 |     |      */
+ 152 |     |     error ERC1155InvalidOperator(address operator);
+ 153 |     | 
+ 154 |     |     /**
+ 155 |     |      * @dev Indicates an array length mismatch between ids and values in a safeBatchTransferFrom operation.
+ 156 |     |      * Used in batch transfers.
+ 157 |     |      * @param idsLength Length of the array of token identifiers
+ 158 |     |      * @param valuesLength Length of the array of token amounts
+ 159 |     |      */
+ 160 |     |     error ERC1155InvalidArrayLength(uint256 idsLength, uint256 valuesLength);
+ 161 |     | }
+ 162 |     | 
+
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol
+   1 |     | // SPDX-License-Identifier: MIT
+   2 |     | // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/ERC20.sol)
+   3 |     | 
+   4 |     | pragma solidity ^0.8.20;
+   5 |     | 
+   6 |     | import {IERC20} from "./IERC20.sol";
+   7 |     | import {IERC20Metadata} from "./extensions/IERC20Metadata.sol";
+   8 |     | import {Context} from "../../utils/Context.sol";
+   9 |     | import {IERC20Errors} from "../../interfaces/draft-IERC6093.sol";
+  10 |     | 
+  11 |     | /**
+  12 |     |  * @dev Implementation of the {IERC20} interface.
+  13 |     |  *
+  14 |     |  * This implementation is agnostic to the way tokens are created. This means
+  15 |     |  * that a supply mechanism has to be added in a derived contract using {_mint}.
+  16 |     |  *
+  17 |     |  * TIP: For a detailed writeup see our guide
+  18 |     |  * https://forum.openzeppelin.com/t/how-to-implement-erc20-supply-mechanisms/226[How
+  19 |     |  * to implement supply mechanisms].
+  20 |     |  *
+  21 |     |  * The default value of {decimals} is 18. To change this, you should override
+  22 |     |  * this function so it returns a different value.
+  23 |     |  *
+  24 |     |  * We have followed general OpenZeppelin Contracts guidelines: functions revert
+  25 |     |  * instead returning `false` on failure. This behavior is nonetheless
+  26 |     |  * conventional and does not conflict with the expectations of ERC20
+  27 |     |  * applications.
+  28 |     |  *
+  29 |     |  * Additionally, an {Approval} event is emitted on calls to {transferFrom}.
+  30 |     |  * This allows applications to reconstruct the allowance for all accounts just
+  31 |     |  * by listening to said events. Other implementations of the EIP may not emit
+  32 |     |  * these events, as it isn't required by the specification.
+  33 |     |  */
+  34 |     | abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
+  35 |     |     mapping(address account => uint256) private _balances;
+  36 |     | 
+  37 |     |     mapping(address account => mapping(address spender => uint256)) private _allowances;
+  38 |     | 
+  39 |     |     uint256 private _totalSupply;
+  40 |     | 
+  41 |     |     string private _name;
+  42 |     |     string private _symbol;
+  43 |     | 
+  44 |     |     /**
+  45 |     |      * @dev Sets the values for {name} and {symbol}.
+  46 |     |      *
+  47 |     |      * All two of these values are immutable: they can only be set once during
+  48 |     |      * construction.
+  49 |     |      */
+  50 |     |     constructor(string memory name_, string memory symbol_) {
+  51 |     |         _name = name_;
+  52 |     |         _symbol = symbol_;
+  53 |     |     }
+  54 |     | 
+  55 |     |     /**
+  56 |     |      * @dev Returns the name of the token.
+  57 |     |      */
+  58 | *   |     function name() public view virtual returns (string memory) {
+  59 | *   |         return _name;
+  60 |     |     }
+  61 |     | 
+  62 |     |     /**
+  63 |     |      * @dev Returns the symbol of the token, usually a shorter version of the
+  64 |     |      * name.
+  65 |     |      */
+  66 | *   |     function symbol() public view virtual returns (string memory) {
+  67 | *   |         return _symbol;
+  68 |     |     }
+  69 |     | 
+  70 |     |     /**
+  71 |     |      * @dev Returns the number of decimals used to get its user representation.
+  72 |     |      * For example, if `decimals` equals `2`, a balance of `505` tokens should
+  73 |     |      * be displayed to a user as `5.05` (`505 / 10 ** 2`).
+  74 |     |      *
+  75 |     |      * Tokens usually opt for a value of 18, imitating the relationship between
+  76 |     |      * Ether and Wei. This is the default value returned by this function, unless
+  77 |     |      * it's overridden.
+  78 |     |      *
+  79 |     |      * NOTE: This information is only used for _display_ purposes: it in
+  80 |     |      * no way affects any of the arithmetic of the contract, including
+  81 |     |      * {IERC20-balanceOf} and {IERC20-transfer}.
+  82 |     |      */
+  83 | *   |     function decimals() public view virtual returns (uint8) {
+  84 | *   |         return 18;
+  85 |     |     }
+  86 |     | 
+  87 |     |     /**
+  88 |     |      * @dev See {IERC20-totalSupply}.
+  89 |     |      */
+  90 | *   |     function totalSupply() public view virtual returns (uint256) {
+  91 | *   |         return _totalSupply;
+  92 |     |     }
+  93 |     | 
+  94 |     |     /**
+  95 |     |      * @dev See {IERC20-balanceOf}.
+  96 |     |      */
+  97 | *   |     function balanceOf(address account) public view virtual returns (uint256) {
+  98 | *   |         return _balances[account];
+  99 |     |     }
+ 100 |     | 
+ 101 |     |     /**
+ 102 |     |      * @dev See {IERC20-transfer}.
+ 103 |     |      *
+ 104 |     |      * Requirements:
+ 105 |     |      *
+ 106 |     |      * - `to` cannot be the zero address.
+ 107 |     |      * - the caller must have a balance of at least `value`.
+ 108 |     |      */
+ 109 | *   |     function transfer(address to, uint256 value) public virtual returns (bool) {
+ 110 |     |         address owner = _msgSender();
+ 111 | *   |         _transfer(owner, to, value);
+ 112 |     |         return true;
+ 113 |     |     }
+ 114 |     | 
+ 115 |     |     /**
+ 116 |     |      * @dev See {IERC20-allowance}.
+ 117 |     |      */
+ 118 | *   |     function allowance(address owner, address spender) public view virtual returns (uint256) {
+ 119 | *   |         return _allowances[owner][spender];
+ 120 |     |     }
+ 121 |     | 
+ 122 |     |     /**
+ 123 |     |      * @dev See {IERC20-approve}.
+ 124 |     |      *
+ 125 |     |      * NOTE: If `value` is the maximum `uint256`, the allowance is not updated on
+ 126 |     |      * `transferFrom`. This is semantically equivalent to an infinite approval.
+ 127 |     |      *
+ 128 |     |      * Requirements:
+ 129 |     |      *
+ 130 |     |      * - `spender` cannot be the zero address.
+ 131 |     |      */
+ 132 | *   |     function approve(address spender, uint256 value) public virtual returns (bool) {
+ 133 |     |         address owner = _msgSender();
+ 134 | *   |         _approve(owner, spender, value);
+ 135 | *   |         return true;
+ 136 |     |     }
+ 137 |     | 
+ 138 |     |     /**
+ 139 |     |      * @dev See {IERC20-transferFrom}.
+ 140 |     |      *
+ 141 |     |      * Emits an {Approval} event indicating the updated allowance. This is not
+ 142 |     |      * required by the EIP. See the note at the beginning of {ERC20}.
+ 143 |     |      *
+ 144 |     |      * NOTE: Does not update the allowance if the current allowance
+ 145 |     |      * is the maximum `uint256`.
+ 146 |     |      *
+ 147 |     |      * Requirements:
+ 148 |     |      *
+ 149 |     |      * - `from` and `to` cannot be the zero address.
+ 150 |     |      * - `from` must have a balance of at least `value`.
+ 151 |     |      * - the caller must have allowance for ``from``'s tokens of at least
+ 152 |     |      * `value`.
+ 153 |     |      */
+ 154 | *   |     function transferFrom(address from, address to, uint256 value) public virtual returns (bool) {
+ 155 |     |         address spender = _msgSender();
+ 156 | *   |         _spendAllowance(from, spender, value);
+ 157 | *   |         _transfer(from, to, value);
+ 158 | *   |         return true;
+ 159 |     |     }
+ 160 |     | 
+ 161 |     |     /**
+ 162 |     |      * @dev Moves a `value` amount of tokens from `from` to `to`.
+ 163 |     |      *
+ 164 |     |      * This internal function is equivalent to {transfer}, and can be used to
+ 165 |     |      * e.g. implement automatic token fees, slashing mechanisms, etc.
+ 166 |     |      *
+ 167 |     |      * Emits a {Transfer} event.
+ 168 |     |      *
+ 169 |     |      * NOTE: This function is not virtual, {_update} should be overridden instead.
+ 170 |     |      */
+ 171 | *   |     function _transfer(address from, address to, uint256 value) internal {
+ 172 | *   |         if (from == address(0)) {
+ 173 |     |             revert ERC20InvalidSender(address(0));
+ 174 |     |         }
+ 175 | *   |         if (to == address(0)) {
+ 176 | *   |             revert ERC20InvalidReceiver(address(0));
+ 177 |     |         }
+ 178 | *   |         _update(from, to, value);
+ 179 |     |     }
+ 180 |     | 
+ 181 |     |     /**
+ 182 |     |      * @dev Transfers a `value` amount of tokens from `from` to `to`, or alternatively mints (or burns) if `from`
+ 183 |     |      * (or `to`) is the zero address. All customizations to transfers, mints, and burns should be done by overriding
+ 184 |     |      * this function.
+ 185 |     |      *
+ 186 |     |      * Emits a {Transfer} event.
+ 187 |     |      */
+ 188 | *   |     function _update(address from, address to, uint256 value) internal virtual {
+ 189 | *   |         if (from == address(0)) {
+ 190 |     |             // Overflow check required: The rest of the code assumes that totalSupply never overflows
+ 191 | *   |             _totalSupply += value;
+ 192 |     |         } else {
+ 193 | *   |             uint256 fromBalance = _balances[from];
+ 194 | *   |             if (fromBalance < value) {
+ 195 | *   |                 revert ERC20InsufficientBalance(from, fromBalance, value);
+ 196 |     |             }
+ 197 |     |             unchecked {
+ 198 |     |                 // Overflow not possible: value <= fromBalance <= totalSupply.
+ 199 | *   |                 _balances[from] = fromBalance - value;
+ 200 |     |             }
+ 201 |     |         }
+ 202 |     | 
+ 203 | *   |         if (to == address(0)) {
+ 204 |     |             unchecked {
+ 205 |     |                 // Overflow not possible: value <= totalSupply or value <= fromBalance <= totalSupply.
+ 206 |     |                 _totalSupply -= value;
+ 207 |     |             }
+ 208 |     |         } else {
+ 209 |     |             unchecked {
+ 210 |     |                 // Overflow not possible: balance + value is at most totalSupply, which we know fits into a uint256.
+ 211 | *   |                 _balances[to] += value;
+ 212 |     |             }
+ 213 |     |         }
+ 214 |     | 
+ 215 | *   |         emit Transfer(from, to, value);
+ 216 |     |     }
+ 217 |     | 
+ 218 |     |     /**
+ 219 |     |      * @dev Creates a `value` amount of tokens and assigns them to `account`, by transferring it from address(0).
+ 220 |     |      * Relies on the `_update` mechanism
+ 221 |     |      *
+ 222 |     |      * Emits a {Transfer} event with `from` set to the zero address.
+ 223 |     |      *
+ 224 |     |      * NOTE: This function is not virtual, {_update} should be overridden instead.
+ 225 |     |      */
+ 226 | *   |     function _mint(address account, uint256 value) internal {
+ 227 | *   |         if (account == address(0)) {
+ 228 | *   |             revert ERC20InvalidReceiver(address(0));
+ 229 |     |         }
+ 230 | *   |         _update(address(0), account, value);
+ 231 |     |     }
+ 232 |     | 
+ 233 |     |     /**
+ 234 |     |      * @dev Destroys a `value` amount of tokens from `account`, lowering the total supply.
+ 235 |     |      * Relies on the `_update` mechanism.
+ 236 |     |      *
+ 237 |     |      * Emits a {Transfer} event with `to` set to the zero address.
+ 238 |     |      *
+ 239 |     |      * NOTE: This function is not virtual, {_update} should be overridden instead
+ 240 |     |      */
+ 241 |     |     function _burn(address account, uint256 value) internal {
+ 242 |     |         if (account == address(0)) {
+ 243 |     |             revert ERC20InvalidSender(address(0));
+ 244 |     |         }
+ 245 |     |         _update(account, address(0), value);
+ 246 |     |     }
+ 247 |     | 
+ 248 |     |     /**
+ 249 |     |      * @dev Sets `value` as the allowance of `spender` over the `owner` s tokens.
+ 250 |     |      *
+ 251 |     |      * This internal function is equivalent to `approve`, and can be used to
+ 252 |     |      * e.g. set automatic allowances for certain subsystems, etc.
+ 253 |     |      *
+ 254 |     |      * Emits an {Approval} event.
+ 255 |     |      *
+ 256 |     |      * Requirements:
+ 257 |     |      *
+ 258 |     |      * - `owner` cannot be the zero address.
+ 259 |     |      * - `spender` cannot be the zero address.
+ 260 |     |      *
+ 261 |     |      * Overrides to this logic should be done to the variant with an additional `bool emitEvent` argument.
+ 262 |     |      */
+ 263 | *   |     function _approve(address owner, address spender, uint256 value) internal {
+ 264 | *   |         _approve(owner, spender, value, true);
+ 265 |     |     }
+ 266 |     | 
+ 267 |     |     /**
+ 268 |     |      * @dev Variant of {_approve} with an optional flag to enable or disable the {Approval} event.
+ 269 |     |      *
+ 270 |     |      * By default (when calling {_approve}) the flag is set to true. On the other hand, approval changes made by
+ 271 |     |      * `_spendAllowance` during the `transferFrom` operation set the flag to false. This saves gas by not emitting any
+ 272 |     |      * `Approval` event during `transferFrom` operations.
+ 273 |     |      *
+ 274 |     |      * Anyone who wishes to continue emitting `Approval` events on the`transferFrom` operation can force the flag to
+ 275 |     |      * true using the following override:
+ 276 |     |      * ```
+ 277 |     |      * function _approve(address owner, address spender, uint256 value, bool) internal virtual override {
+ 278 |     |      *     super._approve(owner, spender, value, true);
+ 279 |     |      * }
+ 280 |     |      * ```
+ 281 |     |      *
+ 282 |     |      * Requirements are the same as {_approve}.
+ 283 |     |      */
+ 284 | *   |     function _approve(address owner, address spender, uint256 value, bool emitEvent) internal virtual {
+ 285 | *   |         if (owner == address(0)) {
+ 286 | *   |             revert ERC20InvalidApprover(address(0));
+ 287 |     |         }
+ 288 | *   |         if (spender == address(0)) {
+ 289 | *   |             revert ERC20InvalidSpender(address(0));
+ 290 |     |         }
+ 291 | *   |         _allowances[owner][spender] = value;
+ 292 | *   |         if (emitEvent) {
+ 293 | *   |             emit Approval(owner, spender, value);
+ 294 |     |         }
+ 295 |     |     }
+ 296 |     | 
+ 297 |     |     /**
+ 298 |     |      * @dev Updates `owner` s allowance for `spender` based on spent `value`.
+ 299 |     |      *
+ 300 |     |      * Does not update the allowance value in case of infinite allowance.
+ 301 |     |      * Revert if not enough allowance is available.
+ 302 |     |      *
+ 303 |     |      * Does not emit an {Approval} event.
+ 304 |     |      */
+ 305 | *   |     function _spendAllowance(address owner, address spender, uint256 value) internal virtual {
+ 306 | *   |         uint256 currentAllowance = allowance(owner, spender);
+ 307 | *   |         if (currentAllowance != type(uint256).max) {
+ 308 | *   |             if (currentAllowance < value) {
+ 309 | *   |                 revert ERC20InsufficientAllowance(spender, currentAllowance, value);
+ 310 |     |             }
+ 311 |     |             unchecked {
+ 312 | *   |                 _approve(owner, spender, currentAllowance - value, false);
+ 313 |     |             }
+ 314 |     |         }
+ 315 |     |     }
+ 316 |     | }
+ 317 |     | 
+
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol
+  1 |     | // SPDX-License-Identifier: MIT
+  2 |     | // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/IERC20.sol)
+  3 |     | 
+  4 |     | pragma solidity ^0.8.20;
+  5 |     | 
+  6 |     | /**
+  7 |     |  * @dev Interface of the ERC20 standard as defined in the EIP.
+  8 |     |  */
+  9 |     | interface IERC20 {
+ 10 |     |     /**
+ 11 |     |      * @dev Emitted when `value` tokens are moved from one account (`from`) to
+ 12 |     |      * another (`to`).
+ 13 |     |      *
+ 14 |     |      * Note that `value` may be zero.
+ 15 |     |      */
+ 16 |     |     event Transfer(address indexed from, address indexed to, uint256 value);
+ 17 |     | 
+ 18 |     |     /**
+ 19 |     |      * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+ 20 |     |      * a call to {approve}. `value` is the new allowance.
+ 21 |     |      */
+ 22 |     |     event Approval(address indexed owner, address indexed spender, uint256 value);
+ 23 |     | 
+ 24 |     |     /**
+ 25 |     |      * @dev Returns the value of tokens in existence.
+ 26 |     |      */
+ 27 |     |     function totalSupply() external view returns (uint256);
+ 28 |     | 
+ 29 |     |     /**
+ 30 |     |      * @dev Returns the value of tokens owned by `account`.
+ 31 |     |      */
+ 32 |     |     function balanceOf(address account) external view returns (uint256);
+ 33 |     | 
+ 34 |     |     /**
+ 35 |     |      * @dev Moves a `value` amount of tokens from the caller's account to `to`.
+ 36 |     |      *
+ 37 |     |      * Returns a boolean value indicating whether the operation succeeded.
+ 38 |     |      *
+ 39 |     |      * Emits a {Transfer} event.
+ 40 |     |      */
+ 41 |     |     function transfer(address to, uint256 value) external returns (bool);
+ 42 |     | 
+ 43 |     |     /**
+ 44 |     |      * @dev Returns the remaining number of tokens that `spender` will be
+ 45 |     |      * allowed to spend on behalf of `owner` through {transferFrom}. This is
+ 46 |     |      * zero by default.
+ 47 |     |      *
+ 48 |     |      * This value changes when {approve} or {transferFrom} are called.
+ 49 |     |      */
+ 50 |     |     function allowance(address owner, address spender) external view returns (uint256);
+ 51 |     | 
+ 52 |     |     /**
+ 53 |     |      * @dev Sets a `value` amount of tokens as the allowance of `spender` over the
+ 54 |     |      * caller's tokens.
+ 55 |     |      *
+ 56 |     |      * Returns a boolean value indicating whether the operation succeeded.
+ 57 |     |      *
+ 58 |     |      * IMPORTANT: Beware that changing an allowance with this method brings the risk
+ 59 |     |      * that someone may use both the old and the new allowance by unfortunate
+ 60 |     |      * transaction ordering. One possible solution to mitigate this race
+ 61 |     |      * condition is to first reduce the spender's allowance to 0 and set the
+ 62 |     |      * desired value afterwards:
+ 63 |     |      * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+ 64 |     |      *
+ 65 |     |      * Emits an {Approval} event.
+ 66 |     |      */
+ 67 |     |     function approve(address spender, uint256 value) external returns (bool);
+ 68 |     | 
+ 69 |     |     /**
+ 70 |     |      * @dev Moves a `value` amount of tokens from `from` to `to` using the
+ 71 |     |      * allowance mechanism. `value` is then deducted from the caller's
+ 72 |     |      * allowance.
+ 73 |     |      *
+ 74 |     |      * Returns a boolean value indicating whether the operation succeeded.
+ 75 |     |      *
+ 76 |     |      * Emits a {Transfer} event.
+ 77 |     |      */
+ 78 |     |     function transferFrom(address from, address to, uint256 value) external returns (bool);
+ 79 |     | }
+ 80 |     | 
+
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol
+  1 |     | // SPDX-License-Identifier: MIT
+  2 |     | // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/extensions/IERC20Metadata.sol)
+  3 |     | 
+  4 |     | pragma solidity ^0.8.20;
+  5 |     | 
+  6 |     | import {IERC20} from "../IERC20.sol";
+  7 |     | 
+  8 |     | /**
+  9 |     |  * @dev Interface for the optional metadata functions from the ERC20 standard.
+ 10 |     |  */
+ 11 |     | interface IERC20Metadata is IERC20 {
+ 12 |     |     /**
+ 13 |     |      * @dev Returns the name of the token.
+ 14 |     |      */
+ 15 |     |     function name() external view returns (string memory);
+ 16 |     | 
+ 17 |     |     /**
+ 18 |     |      * @dev Returns the symbol of the token.
+ 19 |     |      */
+ 20 |     |     function symbol() external view returns (string memory);
+ 21 |     | 
+ 22 |     |     /**
+ 23 |     |      * @dev Returns the decimals places of the token.
+ 24 |     |      */
+ 25 |     |     function decimals() external view returns (uint8);
+ 26 |     | }
+ 27 |     | 
+
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/lib/openzeppelin-contracts/contracts/utils/Context.sol
+  1 |     | // SPDX-License-Identifier: MIT
+  2 |     | // OpenZeppelin Contracts (last updated v5.0.0) (utils/Context.sol)
+  3 |     | 
+  4 |     | pragma solidity ^0.8.20;
+  5 |     | 
+  6 |     | /**
+  7 |     |  * @dev Provides information about the current execution context, including the
+  8 |     |  * sender of the transaction and its data. While these are generally available
+  9 |     |  * via msg.sender and msg.data, they should not be accessed in such a direct
+ 10 |     |  * manner, since when dealing with meta-transactions the account sending and
+ 11 |     |  * paying for execution may not be the actual sender (as far as an application
+ 12 |     |  * is concerned).
+ 13 |     |  *
+ 14 |     |  * This contract is only required for intermediate, library-like contracts.
+ 15 |     |  */
+ 16 |     | abstract contract Context {
+ 17 |     |     function _msgSender() internal view virtual returns (address) {
+ 18 | *   |         return msg.sender;
+ 19 |     |     }
+ 20 |     | 
+ 21 |     |     function _msgData() internal view virtual returns (bytes calldata) {
+ 22 |     |         return msg.data;
+ 23 |     |     }
+ 24 |     | }
+ 25 |     | 
+
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/lib/properties/contracts/ERC20/internal/properties/ERC20BasicProperties.sol
+   1 |     | pragma solidity ^0.8.13;
+   2 |     | 
+   3 |     | import "../util/ERC20TestBase.sol";
+   4 |     | 
+   5 |     | abstract contract CryticERC20BasicProperties is CryticERC20Base {
+   6 |     | 
+   7 |     |     constructor() {
+   8 |     | 
+   9 |     |     }
+  10 |     | 
+  11 |     |     ////////////////////////////////////////
+  12 |     |     // Properties
+  13 |     | 
+  14 |     |     // Total supply should change only by means of mint or burn
+  15 | *   |     function test_ERC20_constantSupply() public virtual {
+  16 | *r  |         require(!isMintableOrBurnable);
+  17 |     |         assertEq(initialSupply, totalSupply(), "Token supply was modified");
+  18 |     |     }
+  19 |     | 
+  20 |     |     // User balance must not exceed total supply
+  21 | *   |     function test_ERC20_userBalanceNotHigherThanSupply() public {
+  22 | *   |         assertLte(balanceOf(msg.sender), totalSupply(), "User balance higher than total supply");
+  23 |     |     }
+  24 |     | 
+  25 |     |     // Sum of users balance must not exceed total supply
+  26 | *   |     function test_ERC20_usersBalancesNotHigherThanSupply() public {
+  27 | *   |         uint256 balance = balanceOf(USER1) + balanceOf(USER2) + balanceOf(USER3);
+  28 | *   |         assertLte(balance, totalSupply(), "Sum of user balances higher than total supply");
+  29 |     |     }
+  30 |     | 
+  31 |     |     // Address zero should have zero balance
+  32 | *   |     function test_ERC20_zeroAddressBalance() public {
+  33 | *   |         assertEq(balanceOf(address(0)), 0, "Address zero balance not equal to zero");
+  34 |     |     }
+  35 |     | 
+  36 |     |     // Transfers to zero address should not be allowed
+  37 | *   |     function test_ERC20_transferToZeroAddress() public {
+  38 | *   |         uint256 balance = balanceOf(address(this));
+  39 | *r  |         require(balance > 0);
+  40 |     | 
+  41 | *   |         bool r = transfer(address(0), balance);
+  42 |     |         assertWithMsg(r == false, "Successful transfer to address zero");
+  43 |     |     }
+  44 |     | 
+  45 |     |     // Transfers to zero address should not be allowed
+  46 | *   |     function test_ERC20_transferFromToZeroAddress(uint256 value) public {
+  47 | *   |         uint256 balance_sender = balanceOf(msg.sender);
+  48 | *   |         uint256 current_allowance = allowance(msg.sender, address(this));
+  49 | *r  |         require(balance_sender > 0 && current_allowance > 0);
+  50 | *   |         uint256 maxValue = balance_sender >= current_allowance ? current_allowance : balance_sender;
+  51 |     | 
+  52 | *   |         bool r = transferFrom(msg.sender, address(0), value % (maxValue + 1));
+  53 |     |         assertWithMsg(r == false, "Successful transferFrom to address zero");
+  54 |     |     }
+  55 |     | 
+  56 |     |     // Self transfers should not break accounting
+  57 | *   |     function test_ERC20_selfTransferFrom(uint256 value) public {
+  58 | *   |         uint256 balance_sender = balanceOf(msg.sender);
+  59 | *   |         uint256 current_allowance = allowance(msg.sender, address(this));
+  60 | *r  |         require(balance_sender > 0 && current_allowance > 0);
+  61 | *   |         uint256 maxValue = balance_sender >= current_allowance ? current_allowance : balance_sender;
+  62 |     | 
+  63 | *   |         bool r = transferFrom(msg.sender, msg.sender, value % (maxValue + 1));
+  64 | *   |         assertWithMsg(r == true, "Failed self transferFrom");
+  65 | *   |         assertEq(balance_sender, balanceOf(msg.sender), "Self transferFrom breaks accounting");
+  66 |     |     }
+  67 |     | 
+  68 |     |     // Self transfers should not break accounting
+  69 | *   |     function test_ERC20_selfTransfer(uint256 value) public {
+  70 | *   |         uint256 balance_sender = balanceOf(address(this));
+  71 | *r  |         require(balance_sender > 0);
+  72 |     | 
+  73 | *   |         bool r = this.transfer(address(this), value % (balance_sender + 1));
+  74 | *   |         assertWithMsg(r == true, "Failed self transfer");
+  75 | *   |         assertEq(balance_sender, balanceOf(address(this)), "Self transfer breaks accounting");
+  76 |     |     }
+  77 |     | 
+  78 |     |     // Transfers for more than available balance should not be allowed
+  79 | *   |     function test_ERC20_transferFromMoreThanBalance(address target) public {
+  80 | *   |         uint256 balance_sender = balanceOf(msg.sender);
+  81 | *   |         uint256 balance_receiver = balanceOf(target);
+  82 | *   |         uint256 current_allowance = allowance(msg.sender, address(this));
+  83 | *r  |         require(balance_sender > 0 && current_allowance > balance_sender);
+  84 |     |         
+  85 | *   |         bool r = transferFrom(msg.sender, target, balance_sender+1);
+  86 |     |         assertWithMsg(r == false, "Successful transferFrom for more than account balance");
+  87 |     |         assertEq(balanceOf(msg.sender), balance_sender, "TransferFrom for more than balance modified source balance");
+  88 |     |         assertEq(balanceOf(target), balance_receiver, "TransferFrom for more than balance modified target balance");
+  89 |     |     }
+  90 |     | 
+  91 |     |     // Transfers for more than available balance should not be allowed
+  92 | *   |     function test_ERC20_transferMoreThanBalance(address target) public {
+  93 | *   |         uint256 balance_sender = balanceOf(address(this));
+  94 | *   |         uint256 balance_receiver = balanceOf(target);
+  95 | *r  |         require(balance_sender > 0);
+  96 |     | 
+  97 | *r  |         bool r = this.transfer(target, balance_sender+1);
+  98 |     |         assertWithMsg(r == false, "Successful transfer for more than account balance");
+  99 |     |         assertEq(balanceOf(address(this)), balance_sender, "Transfer for more than balance modified source balance");
+ 100 | *   |         assertEq(balanceOf(target), balance_receiver, "Transfer for more than balance modified target balance");
+ 101 |     |     }
+ 102 |     | 
+ 103 |     |     // Zero amount transfers should not break accounting
+ 104 | *   |     function test_ERC20_transferZeroAmount(address target) public {
+ 105 | *   |         uint256 balance_sender = balanceOf(address(this));
+ 106 | *   |         uint256 balance_receiver = balanceOf(target);
+ 107 | *r  |         require(balance_sender > 0);
+ 108 |     | 
+ 109 | *   |         bool r = transfer(target, 0);
+ 110 | *   |         assertWithMsg(r == true, "Zero amount transfer failed");
+ 111 | *   |         assertEq(balanceOf(address(this)), balance_sender, "Zero amount transfer modified source balance");
+ 112 | *   |         assertEq(balanceOf(target), balance_receiver, "Zero amount transfer modified target balance");
+ 113 |     |     }
+ 114 |     | 
+ 115 |     |     // Zero amount transfers should not break accounting
+ 116 | *   |     function test_ERC20_transferFromZeroAmount(address target) public {
+ 117 | *   |         uint256 balance_sender = balanceOf(msg.sender);
+ 118 | *   |         uint256 balance_receiver = balanceOf(target);
+ 119 | *   |         uint256 current_allowance = allowance(msg.sender, address(this));
+ 120 | *r  |         require(balance_sender > 0 && current_allowance > 0);
+ 121 |     | 
+ 122 | *   |         bool r = transferFrom(msg.sender, target, 0);
+ 123 | *   |         assertWithMsg(r == true, "Zero amount transferFrom failed");
+ 124 | *   |         assertEq(balanceOf(msg.sender), balance_sender, "Zero amount transferFrom modified source balance");
+ 125 | *   |         assertEq(balanceOf(target), balance_receiver, "Zero amount transferFrom modified target balance");
+ 126 |     |     }
+ 127 |     | 
+ 128 |     |     // Transfers should update accounting correctly
+ 129 | *   |     function test_ERC20_transfer(address target, uint256 amount) public {
+ 130 | *r  |         require(target != address(this));
+ 131 | *   |         uint256 balance_sender = balanceOf(address(this));
+ 132 | *   |         uint256 balance_receiver = balanceOf(target);
+ 133 | *r  |         require(balance_sender > 2);
+ 134 | *   |         uint256 transfer_value = (amount % balance_sender) + 1;
+ 135 |     | 
+ 136 | *r  |         bool r = this.transfer(target, transfer_value);
+ 137 | *   |         assertWithMsg(r == true, "transfer failed");
+ 138 | *   |         assertEq(balanceOf(address(this)), balance_sender-transfer_value, "Wrong source balance after transfer");
+ 139 | *   |         assertEq(balanceOf(target), balance_receiver+transfer_value, "Wrong target balance after transfer");
+ 140 |     |     }
+ 141 |     | 
+ 142 |     |     // Transfers should update accounting correctly
+ 143 | *   |     function test_ERC20_transferFrom(address target, uint256 amount) public {
+ 144 | *r  |         require(target != address(this));
+ 145 | *r  |         require(target != msg.sender);
+ 146 | *   |         uint256 balance_sender = balanceOf(msg.sender);
+ 147 | *   |         uint256 balance_receiver = balanceOf(target);
+ 148 | *   |         uint256 current_allowance = allowance(msg.sender, address(this));
+ 149 | *r  |         require(balance_sender > 2 && current_allowance > balance_sender);
+ 150 | *   |         uint256 transfer_value = (amount % balance_sender) + 1;
+ 151 |     | 
+ 152 | *   |         bool r = transferFrom(msg.sender, target, transfer_value);
+ 153 | *   |         assertWithMsg(r == true, "transferFrom failed");
+ 154 | *   |         assertEq(balanceOf(msg.sender), balance_sender - transfer_value, "Wrong source balance after transferFrom");
+ 155 | *   |         assertEq(balanceOf(target), balance_receiver + transfer_value, "Wrong target balance after transferFrom");
+ 156 |     |     }
+ 157 |     | 
+ 158 |     |     // Approve should set correct allowances
+ 159 | *   |     function test_ERC20_setAllowance(address target, uint256 amount) public {
+ 160 | *r  |         bool r = this.approve(target, amount);
+ 161 | *   |         assertWithMsg(r == true, "Failed to set allowance via approve");
+ 162 | *   |         assertEq(allowance(address(this), target), amount, "Allowance not set correctly");
+ 163 |     |     }
+ 164 |     | 
+ 165 |     |     // Approve should set correct allowances
+ 166 | *   |     function test_ERC20_setAllowanceTwice(address target, uint256 amount) public {
+ 167 | *r  |         bool r = this.approve(target, amount);
+ 168 | *   |         assertWithMsg(r == true, "Failed to set allowance via approve");
+ 169 | *   |         assertEq(allowance(address(this), target), amount, "Allowance not set correctly");
+ 170 |     | 
+ 171 | *   |         r = this.approve(target, amount/2);
+ 172 | *   |         assertWithMsg(r == true, "Failed to set allowance via approve");
+ 173 | *   |         assertEq(allowance(address(this), target), amount/2, "Allowance not set correctly");
+ 174 |     |     }
+ 175 |     | 
+ 176 |     |     // TransferFrom should decrease allowance
+ 177 | *   |     function test_ERC20_spendAllowanceAfterTransfer(address target, uint256 amount) public {
+ 178 | *r  |         require(target != address(this) && target != address(0));
+ 179 | *r  |         require(target != msg.sender);
+ 180 | *   |         uint256 balance_sender = balanceOf(msg.sender);
+ 181 | *   |         uint256 current_allowance = allowance(msg.sender, address(this));
+ 182 | *r  |         require(balance_sender > 0 && current_allowance > balance_sender);
+ 183 | *   |         uint256 transfer_value = (amount % balance_sender) + 1;
+ 184 |     | 
+ 185 | *   |         bool r = this.transferFrom(msg.sender, target, transfer_value);
+ 186 | *   |         assertWithMsg(r == true, "transferFrom failed");
+ 187 |     |         
+ 188 |     |         // Some implementations take an allowance of 2**256-1 as infinite, and therefore don't update
+ 189 | *   |         if (current_allowance != type(uint256).max) {
+ 190 | *   |             assertEq(allowance(msg.sender, address(this)), current_allowance - transfer_value, "Allowance not updated correctly");
+ 191 |     |         }
+ 192 |     |     }
+ 193 |     | 
+ 194 |     | }
+ 195 |     | 
+
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/lib/properties/contracts/ERC20/internal/util/ERC20TestBase.sol
+  1 |     | pragma solidity ^0.8.0;
+  2 |     | 
+  3 |     | import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+  4 |     | import "../../../util/PropertiesConstants.sol";
+  5 |     | import "../../../util/PropertiesHelper.sol";
+  6 |     | 
+  7 |     | abstract contract CryticERC20Base is ERC20, PropertiesAsserts, PropertiesConstants {
+  8 |     | 
+  9 |     |     // Initial supply after deploying
+ 10 |     |     uint256 initialSupply;
+ 11 |     | 
+ 12 |     |     // Is the contract allowed to change its total supply?
+ 13 |     |     bool isMintableOrBurnable;
+ 14 |     | 
+ 15 |     |     constructor() {
+ 16 |     |     }
+ 17 |     | 
+ 18 |     | }
+ 19 |     | 
+
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/lib/properties/contracts/util/PropertiesConstants.sol
+  1 |     | pragma solidity ^0.8.0;
+  2 |     | 
+  3 |     | abstract contract PropertiesConstants {
+  4 |     |     // Constant echidna addresses
+  5 | *   |     address constant USER1 = address(0x10000);
+  6 | *   |     address constant USER2 = address(0x20000);
+  7 | *   |     address constant USER3 = address(0x30000);
+  8 |     |     uint256 constant INITIAL_BALANCE = 1000e18;
+  9 |     | }
+ 10 |     | 
+
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/lib/properties/contracts/util/PropertiesHelper.sol
+   1 |     | pragma solidity ^0.8.0;
+   2 |     | 
+   3 |     | abstract contract PropertiesAsserts {
+   4 |     |     event LogUint256(string,uint256);
+   5 |     |     event LogAddress(string, address);
+   6 |     |     event LogString(string);
+   7 |     | 
+   8 |     |     event AssertFail(string);
+   9 |     |     event AssertEqFail(string);
+  10 |     |     event AssertNeqFail(string);
+  11 |     |     event AssertGteFail(string);
+  12 |     |     event AssertGtFail(string);
+  13 |     |     event AssertLteFail(string);
+  14 |     |     event AssertLtFail(string);
+  15 |     | 
+  16 | *   |     function assertWithMsg(bool b, string memory reason) internal {
+  17 | *   |         if(!b){
+  18 |     |             emit AssertFail(reason);
+  19 |     |             assert(false);
+  20 |     |         }
+  21 |     |     }
+  22 |     | 
+  23 |     |     /// @notice asserts that a is equal to b. Violations are logged using reason.
+  24 | *   |     function assertEq(uint256 a, uint256 b, string memory reason) internal {
+  25 | *   |         if(a != b){
+  26 |     |             string memory aStr = PropertiesLibString.toString(a);
+  27 |     |             string memory bStr = PropertiesLibString.toString(b);
+  28 |     |             bytes memory assertMsg = abi.encodePacked("Invalid: ", aStr,"!=",bStr,", reason: ", reason);
+  29 |     |             emit AssertEqFail(string(assertMsg));
+  30 |     |             assert(false);
+  31 |     |         }
+  32 |     |     }
+  33 |     | 
+  34 |     |     /// @notice int256 version of assertEq
+  35 |     |     function assertEq(int256 a, int256 b, string memory reason) internal {
+  36 |     |         if(a != b){
+  37 |     |             string memory aStr = PropertiesLibString.toString(a);
+  38 |     |             string memory bStr = PropertiesLibString.toString(b);
+  39 |     |             bytes memory assertMsg = abi.encodePacked("Invalid: ", aStr,"!=",bStr,", reason: ", reason);
+  40 |     |             emit AssertEqFail(string(assertMsg));
+  41 |     |             assert(false);
+  42 |     |         }
+  43 |     |     }
+  44 |     | 
+  45 |     |     /// @notice asserts that a is not equal to b. Violations are logged using reason.
+  46 |     |     function assertNeq(uint256 a, uint256 b, string memory reason) internal {
+  47 |     |         if(a == b){
+  48 |     |             string memory aStr = PropertiesLibString.toString(a);
+  49 |     |             string memory bStr = PropertiesLibString.toString(b);
+  50 |     |             bytes memory assertMsg = abi.encodePacked("Invalid: ", aStr,"==",bStr,", reason: ", reason);
+  51 |     |             emit AssertNeqFail(string(assertMsg));
+  52 |     |             assert(false);
+  53 |     |         }
+  54 |     |     }
+  55 |     | 
+  56 |     |     /// @notice int256 version of assertNeq
+  57 |     |     function assertNeq(int256 a, int256 b, string memory reason) internal {
+  58 |     |         if(a == b){
+  59 |     |             string memory aStr = PropertiesLibString.toString(a);
+  60 |     |             string memory bStr = PropertiesLibString.toString(b);
+  61 |     |             bytes memory assertMsg = abi.encodePacked("Invalid: ", aStr,"==",bStr,", reason: ", reason);
+  62 |     |             emit AssertNeqFail(string(assertMsg));
+  63 |     |             assert(false);
+  64 |     |         }
+  65 |     |     }
+  66 |     | 
+  67 |     |     /// @notice asserts that a is greater than or equal to b. Violations are logged using reason.
+  68 |     |     function assertGte(uint256 a, uint256 b, string memory reason) internal {
+  69 |     |         if(!(a >= b)) {
+  70 |     |             string memory aStr = PropertiesLibString.toString(a);
+  71 |     |             string memory bStr = PropertiesLibString.toString(b);
+  72 |     |             bytes memory assertMsg = abi.encodePacked("Invalid: ", aStr,"<",bStr," failed, reason: ", reason);
+  73 |     |             emit AssertGteFail(string(assertMsg));
+  74 |     |             assert(false);
+  75 |     |         }
+  76 |     |     }
+  77 |     | 
+  78 |     |     /// @notice int256 version of assertGte
+  79 |     |     function assertGte(int256 a, int256 b, string memory reason) internal {
+  80 |     |         if(!(a >= b)) {
+  81 |     |             string memory aStr = PropertiesLibString.toString(a);
+  82 |     |             string memory bStr = PropertiesLibString.toString(b);
+  83 |     |             bytes memory assertMsg = abi.encodePacked("Invalid: ", aStr,"<",bStr," failed, reason: ", reason);
+  84 |     |             emit AssertGteFail(string(assertMsg));
+  85 |     |             assert(false);
+  86 |     |         }
+  87 |     |     }
+  88 |     | 
+  89 |     |     /// @notice asserts that a is greater than b. Violations are logged using reason.
+  90 |     |     function assertGt(uint256 a, uint256 b, string memory reason) internal {
+  91 |     |         if(!(a > b)) {
+  92 |     |             string memory aStr = PropertiesLibString.toString(a);
+  93 |     |             string memory bStr = PropertiesLibString.toString(b);
+  94 |     |             bytes memory assertMsg = abi.encodePacked("Invalid: ", aStr,"<=", bStr," failed, reason: ", reason);
+  95 |     |             emit AssertGtFail(string(assertMsg));
+  96 |     |             assert(false);
+  97 |     |         }
+  98 |     |     }
+  99 |     | 
+ 100 |     |     /// @notice int256 version of assertGt
+ 101 |     |     function assertGt(int256 a, int256 b, string memory reason) internal {
+ 102 |     |         if(!(a > b)) {
+ 103 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 104 |     |             string memory bStr = PropertiesLibString.toString(b);
+ 105 |     |             bytes memory assertMsg = abi.encodePacked("Invalid: ", aStr,"<=", bStr," failed, reason: ", reason);
+ 106 |     |             emit AssertGtFail(string(assertMsg));
+ 107 |     |             assert(false);
+ 108 |     |         }
+ 109 |     |     }
+ 110 |     | 
+ 111 |     |     /// @notice asserts that a is less than or equal to b. Violations are logged using reason.
+ 112 | *   |     function assertLte(uint256 a, uint256 b, string memory reason) internal {
+ 113 | *   |         if(!(a <= b)) {
+ 114 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 115 |     |             string memory bStr = PropertiesLibString.toString(b);
+ 116 |     |             bytes memory assertMsg = abi.encodePacked("Invalid: ", aStr,">", bStr," failed, reason: ", reason);
+ 117 |     |             emit AssertLteFail(string(assertMsg));
+ 118 |     |             assert(false);
+ 119 |     |         }
+ 120 |     |     }
+ 121 |     | 
+ 122 |     |     /// @notice int256 version of assertLte
+ 123 |     |     function assertLte(int256 a, int256 b, string memory reason) internal {
+ 124 |     |         if(!(a <= b)) {
+ 125 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 126 |     |             string memory bStr = PropertiesLibString.toString(b);
+ 127 |     |             bytes memory assertMsg = abi.encodePacked("Invalid: ", aStr,">", bStr," failed, reason: ", reason);
+ 128 |     |             emit AssertLteFail(string(assertMsg));
+ 129 |     |             assert(false);
+ 130 |     |         }
+ 131 |     |     }
+ 132 |     | 
+ 133 |     |     /// @notice asserts that a is less than b. Violations are logged using reason.
+ 134 |     |     function assertLt(uint256 a, uint256 b, string memory reason) internal {
+ 135 |     |         if(!(a < b)) {
+ 136 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 137 |     |             string memory bStr = PropertiesLibString.toString(b);
+ 138 |     |             bytes memory assertMsg = abi.encodePacked("Invalid: ", aStr,">=",bStr," failed, reason: ", reason);
+ 139 |     |             emit AssertLtFail(string(assertMsg));
+ 140 |     |             assert(false);
+ 141 |     |         }
+ 142 |     |     }
+ 143 |     | 
+ 144 |     |     /// @notice int256 version of assertLt
+ 145 |     |     function assertLt(int256 a, int256 b, string memory reason) internal {
+ 146 |     |         if(!(a < b)) {
+ 147 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 148 |     |             string memory bStr = PropertiesLibString.toString(b);
+ 149 |     |             bytes memory assertMsg = abi.encodePacked("Invalid: ", aStr,">=",bStr," failed, reason: ", reason);
+ 150 |     |             emit AssertLtFail(string(assertMsg));
+ 151 |     |             assert(false);
+ 152 |     |         }
+ 153 |     |     }
+ 154 |     | 
+ 155 |     |     /// @notice Clamps value to be between low and high, both inclusive
+ 156 |     |     function clampBetween(uint256 value, uint256 low, uint256 high) internal returns (uint256) {
+ 157 |     |         if(value < low || value > high) {
+ 158 |     |             uint ans = low + (value % (high - low + 1));
+ 159 |     |             string memory valueStr = PropertiesLibString.toString(value);
+ 160 |     |             string memory ansStr = PropertiesLibString.toString(ans);
+ 161 |     |             bytes memory message = abi.encodePacked("Clamping value ", valueStr, " to ", ansStr);
+ 162 |     |             emit LogString(string(message));
+ 163 |     |             return ans;
+ 164 |     |         }
+ 165 |     |         return value;
+ 166 |     |     }
+ 167 |     | 
+ 168 |     |     /// @notice int256 version of clampBetween
+ 169 |     |     function clampBetween(int256 value, int256 low, int256 high) internal returns (int256) {
+ 170 |     |         if(value < low || value > high) {
+ 171 |     |             int range = high - low + 1;
+ 172 |     |             int clamped = (value - low) % (range);
+ 173 |     |             if (clamped < 0) clamped += range;
+ 174 |     |             int ans = low + clamped;
+ 175 |     |             string memory valueStr = PropertiesLibString.toString(value);
+ 176 |     |             string memory ansStr = PropertiesLibString.toString(ans);
+ 177 |     |             bytes memory message = abi.encodePacked("Clamping value ", valueStr, " to ", ansStr);
+ 178 |     |             emit LogString(string(message));
+ 179 |     |             return ans;
+ 180 |     |         }
+ 181 |     |         return value;
+ 182 |     |     }
+ 183 |     | 
+ 184 |     |     /// @notice clamps a to be less than b
+ 185 |     |     function clampLt(uint256 a, uint256 b) internal returns (uint256){
+ 186 |     |         if ( !(a < b)) {
+ 187 |     |             assertNeq(b, 0, "clampLt cannot clamp value a to be less than zero. Check your inputs/assumptions.");
+ 188 |     |             uint256 value = a % b;
+ 189 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 190 |     |             string memory valueStr = PropertiesLibString.toString(value);
+ 191 |     |             bytes memory message = abi.encodePacked("Clamping value ", aStr, " to ", valueStr);
+ 192 |     |             emit LogString(string(message));
+ 193 |     |             return value;
+ 194 |     |         }
+ 195 |     |         return a;
+ 196 |     |     }
+ 197 |     | 
+ 198 |     |     /// @notice int256 version of clampLt
+ 199 |     |     function clampLt(int256 a, int256 b) internal returns (int256){
+ 200 |     |         if ( !(a < b)) {
+ 201 |     |             int256 value = b-1;
+ 202 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 203 |     |             string memory valueStr = PropertiesLibString.toString(value);
+ 204 |     |             bytes memory message = abi.encodePacked("Clamping value ", aStr, " to ", valueStr);
+ 205 |     |             emit LogString(string(message));
+ 206 |     |             return value;
+ 207 |     |         }
+ 208 |     |         return a;
+ 209 |     |     }
+ 210 |     | 
+ 211 |     |     /// @notice clamps a to be less than or equal to b
+ 212 |     |     function clampLte(uint256 a, uint256 b) internal returns (uint256) {
+ 213 |     |         if(!(a <= b)) {
+ 214 |     |             uint256 value = a % (b+1);
+ 215 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 216 |     |             string memory valueStr = PropertiesLibString.toString(value);
+ 217 |     |             bytes memory message = abi.encodePacked("Clamping value ", aStr, " to ", valueStr);
+ 218 |     |             emit LogString(string(message));
+ 219 |     |             return value;
+ 220 |     |         }
+ 221 |     |         return a;
+ 222 |     |     }
+ 223 |     | 
+ 224 |     |     /// @notice int256 version of clampLte
+ 225 |     |     function clampLte(int256 a, int256 b) internal returns (int256) {
+ 226 |     |         if(!(a <= b)) {
+ 227 |     |             int256 value = b;
+ 228 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 229 |     |             string memory valueStr = PropertiesLibString.toString(value);
+ 230 |     |             bytes memory message = abi.encodePacked("Clamping value ", aStr, " to ", valueStr);
+ 231 |     |             emit LogString(string(message));
+ 232 |     |             return value;
+ 233 |     |         }
+ 234 |     |         return a;
+ 235 |     |     }
+ 236 |     | 
+ 237 |     |     /// @notice clamps a to be greater than b
+ 238 |     |     function clampGt(uint256 a, uint256 b) internal returns (uint256) {
+ 239 |     |         if(!(a > b)){
+ 240 |     |             assertNeq(b, type(uint256).max, "clampGt cannot clamp value a to be larger than uint256.max. Check your inputs/assumptions.");
+ 241 |     |             uint256 value = b+1;
+ 242 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 243 |     |             string memory valueStr = PropertiesLibString.toString(value);
+ 244 |     |             bytes memory message = abi.encodePacked("Clamping value ", aStr, " to ", valueStr);
+ 245 |     |             emit LogString(string(message));
+ 246 |     |             return value;
+ 247 |     |         } else {
+ 248 |     |             return a;
+ 249 |     |         }
+ 250 |     |     }
+ 251 |     | 
+ 252 |     |     /// @notice int256 version of clampGt
+ 253 |     |     function clampGt(int256 a, int256 b) internal returns (int256) {
+ 254 |     |         if(!(a > b)){
+ 255 |     |             int256 value = b+1;
+ 256 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 257 |     |             string memory valueStr = PropertiesLibString.toString(value);
+ 258 |     |             bytes memory message = abi.encodePacked("Clamping value ", aStr, " to ", valueStr);
+ 259 |     |             emit LogString(string(message));
+ 260 |     |             return value;
+ 261 |     |         } else {
+ 262 |     |             return a;
+ 263 |     |         }
+ 264 |     |     }
+ 265 |     | 
+ 266 |     |     /// @notice clamps a to be greater than or equal to b
+ 267 |     |     function clampGte(uint256 a, uint256 b) internal returns (uint256) {
+ 268 |     |         if(!(a > b)){
+ 269 |     |             uint256 value = b;
+ 270 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 271 |     |             string memory valueStr = PropertiesLibString.toString(value);
+ 272 |     |             bytes memory message = abi.encodePacked("Clamping value ", aStr, " to ", valueStr);
+ 273 |     |             emit LogString(string(message));
+ 274 |     |             return value;
+ 275 |     |         }
+ 276 |     |         return a;
+ 277 |     |     }
+ 278 |     | 
+ 279 |     |     /// @notice int256 version of clampGte
+ 280 |     |     function clampGte(int256 a, int256 b) internal returns (int256) {
+ 281 |     |         if(!(a > b)){
+ 282 |     |             int256 value = b;
+ 283 |     |             string memory aStr = PropertiesLibString.toString(a);
+ 284 |     |             string memory valueStr = PropertiesLibString.toString(value);
+ 285 |     |             bytes memory message = abi.encodePacked("Clamping value ", aStr, " to ", valueStr);
+ 286 |     |             emit LogString(string(message));
+ 287 |     |             return value;
+ 288 |     |         }
+ 289 |     |         return a;
+ 290 |     |     }
+ 291 |     | }
+ 292 |     | 
+ 293 |     | /// @notice Efficient library for creating string representations of integers.
+ 294 |     | /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/utils/LibString.sol)
+ 295 |     | /// @author Modified from Solady (https://github.com/Vectorized/solady/blob/main/src/utils/LibString.sol)
+ 296 |     | /// @dev Name of the library is modified to prevent collisions with contract-under-test uses of LibString
+ 297 |     | library PropertiesLibString {
+ 298 |     | 
+ 299 |     |     function toString(int256 value) internal pure returns (string memory str) {
+ 300 |     |         uint256 absValue = value >= 0 ? uint256(value) : uint256(-value);
+ 301 |     |         str = toString(absValue);
+ 302 |     | 
+ 303 |     |         if(value < 0) {
+ 304 |     |             str = string(abi.encodePacked("-", str));
+ 305 |     |         }
+ 306 |     |     }
+ 307 |     | 
+ 308 |     |     function toString(uint256 value) internal pure returns (string memory str) {
+ 309 |     |         /// @solidity memory-safe-assembly
+ 310 |     |         assembly {
+ 311 |     |             // The maximum value of a uint256 contains 78 digits (1 byte per digit), but we allocate 160 bytes
+ 312 |     |             // to keep the free memory pointer word aligned. We'll need 1 word for the length, 1 word for the
+ 313 |     |             // trailing zeros padding, and 3 other words for a max of 78 digits. In total: 5 * 32 = 160 bytes.
+ 314 |     |             let newFreeMemoryPointer := add(mload(0x40), 160)
+ 315 |     | 
+ 316 |     |             // Update the free memory pointer to avoid overriding our string.
+ 317 |     |             mstore(0x40, newFreeMemoryPointer)
+ 318 |     | 
+ 319 |     |             // Assign str to the end of the zone of newly allocated memory.
+ 320 |     |             str := sub(newFreeMemoryPointer, 32)
+ 321 |     | 
+ 322 |     |             // Clean the last word of memory it may not be overwritten.
+ 323 |     |             mstore(str, 0)
+ 324 |     | 
+ 325 |     |             // Cache the end of the memory to calculate the length later.
+ 326 |     |             let end := str
+ 327 |     | 
+ 328 |     |             // We write the string from rightmost digit to leftmost digit.
+ 329 |     |             // The following is essentially a do-while loop that also handles the zero case.
+ 330 |     |             // prettier-ignore
+ 331 |     |             for { let temp := value } 1 {} {
+ 332 |     |                 // Move the pointer 1 byte to the left.
+ 333 |     |                 str := sub(str, 1)
+ 334 |     | 
+ 335 |     |                 // Write the character to the pointer.
+ 336 |     |                 // The ASCII index of the '0' character is 48.
+ 337 |     |                 mstore8(str, add(48, mod(temp, 10)))
+ 338 |     | 
+ 339 |     |                 // Keep dividing temp until zero.
+ 340 |     |                 temp := div(temp, 10)
+ 341 |     | 
+ 342 |     |                  // prettier-ignore
+ 343 |     |                 if iszero(temp) { break }
+ 344 |     |             }
+ 345 |     | 
+ 346 |     |             // Compute and cache the final total length of the string.
+ 347 |     |             let length := sub(end, str)
+ 348 |     | 
+ 349 |     |             // Move the pointer 32 bytes leftwards to make room for the length.
+ 350 |     |             str := sub(str, 32)
+ 351 |     | 
+ 352 |     |             // Store the string's length at the start of memory allocated for our string.
+ 353 |     |             mstore(str, length)
+ 354 |     |         }
+ 355 |     |     }
+ 356 |     | 
+ 357 |     |     function toString(address value) internal pure returns (string memory str){
+ 358 |     |         bytes memory s = new bytes(40);
+ 359 |     |         for (uint i = 0; i < 20; i++) {
+ 360 |     |             bytes1 b = bytes1(uint8(uint(uint160(value)) / (2**(8*(19 - i)))));
+ 361 |     |             bytes1 hi = bytes1(uint8(b) / 16);
+ 362 |     |             bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
+ 363 |     |             s[2*i] = char(hi);
+ 364 |     |             s[2*i+1] = char(lo);            
+ 365 |     |         }
+ 366 |     |         return string(s);
+ 367 |     |     }
+ 368 |     | 
+ 369 |     |     function char(bytes1 b) internal pure returns (bytes1 c) {
+ 370 |     |         if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
+ 371 |     |         else return bytes1(uint8(b) + 0x57);
+ 372 |     |     }
+ 373 |     | }
+ 374 |     | 
+
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/src/HexitToken.sol
+  1 |     | // SPDX-License-Identifier: GPL-3.0-or-later
+  2 |     | pragma solidity ^0.8.20;
+  3 |     | 
+  4 |     | import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+  5 |     | import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+  6 |     | 
+  7 |     | import {IHexitToken} from "./interfaces/IHexitToken.sol";
+  8 |     | 
+  9 |     | /// @title Hexit Token
+ 10 |     | /// @dev incentive token distributed by bootstrap staking pool.
+ 11 |     | contract HexitToken is ERC20, Ownable, IHexitToken {
+ 12 |     |     /// @dev HEX1 bootstrap contract address.
+ 13 | *   |     address public hexOneBootstrap;
+ 14 |     | 
+ 15 |     |     /// @dev checks if the sender is the bootstrap.
+ 16 |     |     modifier onlyHexOneBootstrap() {
+ 17 | *r  |         if (msg.sender != hexOneBootstrap) revert NotHexOneBootstrap();
+ 18 |     |         _;
+ 19 |     |     }
+ 20 |     | 
+ 21 |     |     /// @param _name name of the token.
+ 22 |     |     /// @param _symbol ticker of the token.
+ 23 |     |     constructor(string memory _name, string memory _symbol) ERC20(_name, _symbol) Ownable(msg.sender) {}
+ 24 |     | 
+ 25 |     |     /// @dev set the address of the bootstrap.
+ 26 |     |     /// @param _hexOneBootstrap address of the bootstrap.
+ 27 | *   |     function setHexOneBootstrap(address _hexOneBootstrap) external onlyOwner {
+ 28 | *r  |         if (_hexOneBootstrap == address(0)) revert InvalidAddress();
+ 29 | *   |         hexOneBootstrap = _hexOneBootstrap;
+ 30 | *   |         emit BootstrapInitialized(_hexOneBootstrap);
+ 31 |     |     }
+ 32 |     | 
+ 33 |     |     /// @dev mint HEXIT tokens to a specified account.
+ 34 |     |     /// @notice only bootstrap can call this function.
+ 35 |     |     /// @param _recipient address of the receiver.
+ 36 |     |     /// @param _amount amount of HEX1 being minted.
+ 37 | *   |     function mint(address _recipient, uint256 _amount) external onlyHexOneBootstrap {
+ 38 | *   |         _mint(_recipient, _amount);
+ 39 |     |     }
+ 40 |     | }
+ 41 |     | 
+
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/src/interfaces/IHexitToken.sol
+  1 |     | // SPDX-License-Identifier: GPL-3.0-or-later
+  2 |     | pragma solidity ^0.8.20;
+  3 |     | 
+  4 |     | interface IHexitToken {
+  5 |     |     event BootstrapInitialized(address hexOneBootstrap);
+  6 |     | 
+  7 |     |     error NotHexOneBootstrap();
+  8 |     |     error InvalidAddress();
+  9 |     | 
+ 10 |     |     function setHexOneBootstrap(address _bootstrap) external;
+ 11 |     |     function mint(address _recipient, uint256 _amount) external;
+ 12 |     | }
+ 13 |     | 
+
+/Users/miguelmartins/Desktop/Repos/hex1-contracts-coverage/test/echidna/HexitHarness.sol
+  1 |     | // SPDX-License-Identifier: GPL-3.0-or-later
+  2 |     | pragma solidity ^0.8.0;
+  3 |     | 
+  4 |     | import "../../src/HexitToken.sol";
+  5 |     | import "../../lib/properties/contracts/ERC20/internal/properties/ERC20BasicProperties.sol";
+  6 |     | 
+  7 | *or | contract CryticERC20InternalHarness is HexitToken, CryticERC20BasicProperties {
+  8 |     |     constructor() HexitToken("HexitToken", "HEXIT") {
+  9 |     |         // Setup balances for USER1, USER2 and USER3:
+ 10 |     |         _mint(USER1, INITIAL_BALANCE);
+ 11 |     |         _mint(USER2, INITIAL_BALANCE);
+ 12 |     |         _mint(USER3, INITIAL_BALANCE);
+ 13 |     |         // Setup total supply:
+ 14 |     |         initialSupply = totalSupply();
+ 15 |     |         isMintableOrBurnable = true;
+ 16 |     |     }
+ 17 |     | }
+ 18 |     | 
+

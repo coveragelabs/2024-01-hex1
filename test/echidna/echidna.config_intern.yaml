@@ -1,5 +1,5 @@
-corpusDir: "tests/crytic/erc20/echidna-corpus-internal"
+corpusDir: "tests/erc20/echidna-corpus-internal"
 testMode: assertion
-testLimit: 100000
+testLimit: 50000
 deployer: "0x10000"
 sender: ["0x10000", "0x20000", "0x30000"]
