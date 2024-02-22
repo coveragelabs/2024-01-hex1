@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "../Base.t.sol";
+import "../../Base.t.sol";
 
 contract StakingHelper is Base {
     function _initialPurchase(uint256 _hexAmount, uint256 _hexitAmount) internal {

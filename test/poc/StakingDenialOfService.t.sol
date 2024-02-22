@@ -5,6 +5,7 @@ import "../Base.t.sol";
 
 import {StakingHelper} from "./utils/StakingHelper.sol";
 
+/// @dev forge test --match-contract StakingDenialOfService --rpc-url "https://rpc.pulsechain.com" -vvv
 contract StakingDenialOfService is StakingHelper {
     function setUp() public override {
         super.setUp();
@@ -20,11 +21,11 @@ contract StakingDenialOfService is StakingHelper {
     }
 
     function test_stake_denialOfService_afterInactivityDays() public {
-        // bound the amount of HEX1/DAI to stake
+        // bound the amount of HEX1 to stake
         uint256 amount = 500 * 1e18;
 
-        // deal HEX1/DAI LP to the user
-        deal(hexOneDaiPair, user, amount);
+        // deal HEX1 LP to the user
+        deal(address(hex1), user, amount);
 
         // skip the number of inactivity days after staking is enabled
         skip(2 days);
@@ -32,9 +33,9 @@ contract StakingDenialOfService is StakingHelper {
         // staking contract is bricked because of a division by zero error
         vm.startPrank(user);
 
-        IERC20(hexOneDaiPair).approve(address(staking), amount);
+        IERC20(address(hex1)).approve(address(staking), amount);
         vm.expectRevert(stdError.divisionError);
-        staking.stake(hexOneDaiPair, amount);
+        staking.stake(address(hex1), amount);
 
         vm.stopPrank();
     }

@@ -20,8 +20,9 @@ import {UniswapV2Library} from "../src/libraries/UniswapV2Library.sol";
 import {IPulseXPair} from "../src/interfaces/pulsex/IPulseXPair.sol";
 import {IPulseXFactory} from "../src/interfaces/pulsex/IPulseXFactory.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IHexToken} from "../src/interfaces/IHexToken.sol";
 
-import {Test, console2 as console} from "forge-std/Test.sol";
+import {Test, stdError, console2 as console} from "forge-std/Test.sol";
 
 contract Base is Test {
     HexOneToken public hex1;
@@ -46,7 +47,7 @@ contract Base is Test {
     address public deployer = makeAddr("deployer");
     address public receiver = makeAddr("receiver");
 
-    function setUp() public {
+    function setUp() public virtual {
         // impersonate the deployer
         vm.startPrank(deployer);
 
