@@ -471,7 +471,7 @@ contract HexOneProperties is PropertiesAsserts {
     }
 
     /// @custom:invariant - Daily distributed rewards must be equal to 1% (HEX).
-    // @audit-ok property checked
+    // @audit-issue property broken
     function dailyDistributedHexRewardsMustBeEqualTo1Percent() public {
         (,,, uint256 currentStakingDay,) = hexOneStakingWrap.pools(address(hexx));
 
