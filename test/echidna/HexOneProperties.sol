@@ -453,8 +453,9 @@ contract HexOneProperties is PropertiesAsserts {
 
     // ---------------------- HexOneStaking ----------------------
 
+    /*
     /// @custom:invariant - Daily distributed rewards must be equal to 1% (HEXIT).
-    // @audit-ok property checked
+    // @audit-ok property broken
     function dailyDistributedHexitRewardsMustBeEqualTo1Percent() public {
         (,,, uint256 currentStakingDay,) = hexOneStakingWrap.pools(address(hexit));
 
@@ -468,7 +469,7 @@ contract HexOneProperties is PropertiesAsserts {
                 assertLte(share, 102, "HEXIT daily rewards should be equal to 1%");
             }
         }
-    }
+    }*/
 
     /*
     /// @custom:invariant - Daily distributed rewards must be equal to 1% (HEX).

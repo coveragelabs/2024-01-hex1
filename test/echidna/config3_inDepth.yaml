@@ -1,5 +1,5 @@
 seqLen: 300
-testLimit: 100000000
+testLimit: 1000000000
 
 workers: 32
 coverage: true
