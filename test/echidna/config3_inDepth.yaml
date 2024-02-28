@@ -1,7 +1,7 @@
 seqLen: 300
-testLimit: 600000
+testLimit: 100000000
 
-workers: 10
+workers: 32
 coverage: true
 allowFFI: true
 corpusDir: "corpus"

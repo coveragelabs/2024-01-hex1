@@ -470,6 +470,7 @@ contract HexOneProperties is PropertiesAsserts {
         }
     }
 
+    /*
     /// @custom:invariant - Daily distributed rewards must be equal to 1% (HEX).
     // @audit-issue property broken
     function dailyDistributedHexRewardsMustBeEqualTo1Percent() public {
@@ -486,7 +487,9 @@ contract HexOneProperties is PropertiesAsserts {
             }
         }
     }
+    */
 
+    /*
     /// @custom:invariant - Pool shares to give are always proportional to the increase in balance of a stake token based on the weight (HEX).
     // @audit-issue property broken
     function hexPoolSharesToGiveAreAlwaysProportionalToIncreaseInBalance(
@@ -556,7 +559,7 @@ contract HexOneProperties is PropertiesAsserts {
             assertEq(stakeTokenBalanceIncreaseFactor, hexitSharesIncreaseFactor, "Not proportional");
         }
     }
-
+    */
     /// @custom:invariant - Users cannot unstake more than what they staked (excluding rewards)
     // @audit-ok property checked
     function usersCannotWithdrawMoreThanWhatTheyStaked(uint256 randAmount) public {
@@ -672,6 +675,7 @@ contract HexOneProperties is PropertiesAsserts {
         assertEq(success ? 1 : 0, 0, "User managed to unstake before the expected deadline");
     }
 
+    /*
     /// @custom:invariant - The total rewards to be distributed to Alice with N deposits of X total value should be the same for Bob with pN deposits of X same total value
     // @audit-issue property broken
     function totalRewardsToDistToAliceWithNDepositsOfXValueMustEqForBobWithPNDepositsOfXValue(
@@ -770,11 +774,12 @@ contract HexOneProperties is PropertiesAsserts {
 
         // cleanup state for the following invariants
         setupCleanup(alice, bob, token);
-    }
+    }*/
 
     /// ----- HexOneVault -----
 
     /// @custom:invariant - Vault deposit must never be claimed if maturity has not passed
+    // @audit-ok property checked
     function tryClaimVaultBeforeMaturity(uint256 randUser, uint256 randStakeId) public {
         User user = users[randUser % users.length];
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
@@ -786,6 +791,7 @@ contract HexOneProperties is PropertiesAsserts {
 
     /// @custom:invariant - Amount and duration on deposit must always be corresponding to the amount minus fee and corresponding set lock on the contract storage
     /// @custom:invariant - The fee taken from deposits must always be 5%
+    // @audit-ok property checked
     function hexOneDepositAmountDurationIntegrity(uint256 randUser, uint256 randAmount, uint256 randDuration) public {
         User user = users[randUser % users.length];
 
@@ -812,6 +818,7 @@ contract HexOneProperties is PropertiesAsserts {
 
     /// @custom:invariant - If hexOneBorrowed gt 0, the same amount of hexOneBorrowed must always be burned on claim
     /// @custom:invariant - The amount to withdraw after maturity must always be greater or equal than the HEX collateral deposited
+    // @audit-ok property checked
     function hexOneBorrowAmountIntegrity(uint256 randUser, uint256 randStakeId, uint256 randTimestamp) public {
         User user = users[randUser % users.length];
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
@@ -832,6 +839,7 @@ contract HexOneProperties is PropertiesAsserts {
 
     /// @custom:invariant - Must only be able to mint more HEXONE with the same HEX collateral if the HEX price increases
     // @audit-issue - Misleading name in internal quote function (INFO)
+    // @audit-ok property checked
     function tryMintMorePriceIncrease(uint256 randUser, uint256 randStakeId) public {
         User user = users[randUser % users.length];
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
@@ -866,6 +874,7 @@ contract HexOneProperties is PropertiesAsserts {
     }
 
     /// @custom:invariant - Must never be able to mint more HEXONE with the same HEX collateral if the HEX price decreases
+    // @audit-ok property checked
     function tryMintMorePriceDecrease(uint256 randUser, uint256 randStakeId) public {
         User user = users[randUser % users.length];
         uint256 stakeId = userToStakeids[user][randStakeId % userToStakeids[user].length];
@@ -888,6 +897,7 @@ contract HexOneProperties is PropertiesAsserts {
     }
 
     /// @custom:invariant - The sum of all `DepositInfo.amount` HEX deposited by the user across all its deposits must always be equal to `UserInfo.totalAmount`
+    // @audit-ok property checked
     function checkDepositUserInfoIntegrity(uint256 randUser) public {
         User user = users[randUser % users.length];
         uint256 depositTotalAmount = 0;
@@ -905,6 +915,7 @@ contract HexOneProperties is PropertiesAsserts {
     }
 
     /// @custom:invariant - The sum of all `DepositInfo.borrowed` HEX1 borrowed by the user across all its deposits must always be equal to `UserInfo.totalBorrowed`
+    // @audit-ok property checked
     function checkBorrowUserInfoIntegrity(uint256 randUser) public {
         User user = users[randUser % users.length];
         uint256 depositTotalBorrowed = 0;
@@ -921,6 +932,7 @@ contract HexOneProperties is PropertiesAsserts {
         assert(depositTotalBorrowed == userTotalBorrowed);
     }
 
+    /*
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
     // @audit:issue - Invariant broken (LOW accounting issue below 1e14 $HEX1)
     function hexOneLiquidationsIntegrity() public {
@@ -938,7 +950,7 @@ contract HexOneProperties is PropertiesAsserts {
         emit LogUint256("Total user HEX1 blances", totalHexoneUsersAmount);
         emit LogUint256("Total user borrows on struct", totalHexoneProtocolAmount);
         assert(totalHexoneUsersAmount >= totalHexoneProtocolAmount);
-    }
+    }*/
 
     /*
     /// @custom:invariant - staking history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
@@ -960,6 +972,7 @@ contract HexOneProperties is PropertiesAsserts {
 
     /// @custom:invariant - If two users sacrificed the same amount of the same sacrifice token on different days, the one who sacrificed first should always receive more `HEXIT` (different days)
     /// @custom:invariant The amount of `UserInfo.hexitShares` a user has must always be equal to the amount of `HEXIT` minted when the user claim its sacrifice rewards via `claimSacrifice` function
+    // @audit-ok property checked
     function sacrificePriorityAndSharesIntegrity(
         uint256 randUser,
         uint256 randNewUser,
@@ -1015,6 +1028,7 @@ contract HexOneProperties is PropertiesAsserts {
     }
 
     /// @custom:invariant If two users are entitled to the same amount of airdrop (HEX staked in USD + sacrificed USD), the one who claimed first should always receive more `HEXIT` (different days)
+    // @audit-ok property checked
     function airdropPriorityIntegrityDifferentDays(
         uint256 randUser,
         uint256 randNewUser,
@@ -1072,6 +1086,7 @@ contract HexOneProperties is PropertiesAsserts {
     }
 
     /// @custom:invariant If two users are entitled to the same amount of airdrop (HEX staked in USD + sacrificed USD), they should always receive the same amount of `HEXIT` if they claimed the airdrop on the same day
+    // @audit-ok property checked
     function airdropPriorityIntegritySameDay(
         uint256 randUser,
         uint256 randNewUser,
@@ -1145,36 +1160,6 @@ contract HexOneProperties is PropertiesAsserts {
         assert(teamWalletBalance == (totalHexitMinted * 50) / 100);
     }
     */
-
-    /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
-    // function hexitLiquidationsIntegrity() public {
-    //     uint256 totalHexoneUsersAmount;
-    //     uint256 totalHexoneProtocolAmount;
-
-    //     for (uint256 i = 0; i < totalNbUsers; i++) {
-    //         (,, uint256 totalBorrowed) = hexOneVault.userInfos(address(users[i]));
-    //         totalHexoneProtocolAmount += totalBorrowed;
-    //     }
-
-    //     for (uint256 i = 0; i < totalNbUsers; i++) {
-    //         totalHexoneUsersAmount += hex1.balanceOf(address(users[i]));
-    //     }
-
-    //     assert(totalHexoneUsersAmount == totalHexoneProtocolAmount);
-    // }
-
-    /// @custom:invariant - history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
-    // function poolAmountStateIntegrity() public {
-    //     for (uint256 i = 0; i < stakeTokens.length; i++) {
-    //         (,,, uint256 currentStakingDay,) = hexOneStakingWrap.pools(address(stakeTokens[i]));
-    //         (,, uint256 totalShares,,) = hexOneStakingWrap.pools(address(stakeTokens[i]));
-    //         (, uint256 amountToDistribute) = hexOneStakingWrap.poolHistory(currentStakingDay, address(stakeTokens[i]));
-
-    //         if (totalShares == 0 || amountToDistribute == 0) {
-    //             assert(totalShares == amountToDistribute);
-    //         }
-    //     }
-    // }
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
     function setPrices(address tokenIn, address tokenOut, uint256 r) internal {
