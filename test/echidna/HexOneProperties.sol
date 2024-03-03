@@ -448,12 +448,8 @@ contract HexOneProperties is PropertiesAsserts {
 
     // ---------------------- Invariants ---------------------- (Here we will be defining all our invariants)
 
-    /// @custom:invariant - HEXIT token emmission should never be more than the max emission.
-    // function hexitEmissionIntegrity() public {}
-
     // ---------------------- HexOneStaking ----------------------
 
-    /*
     /// @custom:invariant - Daily distributed rewards must be equal to 1% (HEXIT).
     // @audit-ok property broken
     function dailyDistributedHexitRewardsMustBeEqualTo1Percent() public {
@@ -469,9 +465,8 @@ contract HexOneProperties is PropertiesAsserts {
                 assertLte(share, 102, "HEXIT daily rewards should be equal to 1%");
             }
         }
-    }*/
+    }
 
-    /*
     /// @custom:invariant - Daily distributed rewards must be equal to 1% (HEX).
     // @audit-issue property broken
     function dailyDistributedHexRewardsMustBeEqualTo1Percent() public {
@@ -488,9 +483,7 @@ contract HexOneProperties is PropertiesAsserts {
             }
         }
     }
-    */
 
-    /*
     /// @custom:invariant - Pool shares to give are always proportional to the increase in balance of a stake token based on the weight (HEX).
     // @audit-issue property broken
     function hexPoolSharesToGiveAreAlwaysProportionalToIncreaseInBalance(
@@ -560,7 +553,7 @@ contract HexOneProperties is PropertiesAsserts {
             assertEq(stakeTokenBalanceIncreaseFactor, hexitSharesIncreaseFactor, "Not proportional");
         }
     }
-    */
+
     /// @custom:invariant - Users cannot unstake more than what they staked (excluding rewards)
     // @audit-ok property checked
     function usersCannotWithdrawMoreThanWhatTheyStaked(uint256 randAmount) public {
@@ -676,7 +669,6 @@ contract HexOneProperties is PropertiesAsserts {
         assertEq(success ? 1 : 0, 0, "User managed to unstake before the expected deadline");
     }
 
-    /*
     /// @custom:invariant - The total rewards to be distributed to Alice with N deposits of X total value should be the same for Bob with pN deposits of X same total value
     // @audit-issue property broken
     function totalRewardsToDistToAliceWithNDepositsOfXValueMustEqForBobWithPNDepositsOfXValue(
@@ -775,7 +767,7 @@ contract HexOneProperties is PropertiesAsserts {
 
         // cleanup state for the following invariants
         setupCleanup(alice, bob, token);
-    }*/
+    }
 
     /// ----- HexOneVault -----
 
@@ -933,7 +925,6 @@ contract HexOneProperties is PropertiesAsserts {
         assert(depositTotalBorrowed == userTotalBorrowed);
     }
 
-    /*
     /// @custom:invariant - HEX1 minted must always be equal to the total amount of HEX1 needed to claim or liquidate all deposits
     // @audit:issue - Invariant broken (LOW accounting issue below 1e14 $HEX1)
     function hexOneLiquidationsIntegrity() public {
@@ -951,9 +942,8 @@ contract HexOneProperties is PropertiesAsserts {
         emit LogUint256("Total user HEX1 blances", totalHexoneUsersAmount);
         emit LogUint256("Total user borrows on struct", totalHexoneProtocolAmount);
         assert(totalHexoneUsersAmount >= totalHexoneProtocolAmount);
-    }*/
+    }
 
-    /*
     /// @custom:invariant - staking history.amountToDistribute for a given day must always be == 0 whenever pool.totalShares is also == 0
     // @audit-issue - Invariant broken (MEDIUM accounting issue)
     function poolAmountStateIntegrity() public {
@@ -967,7 +957,6 @@ contract HexOneProperties is PropertiesAsserts {
             }
         }
     }
-    */
 
     /// ----- HexOneBootstrap -----
 
@@ -1142,7 +1131,6 @@ contract HexOneProperties is PropertiesAsserts {
         assert(finalUserBalance == finalNewUserBalance);
     }
 
-    /*
     /// @custom:invariant - The `startAirdrop` function must always mint 33% on top of the total `HEXIT` minted during the sacrifice phase to the HexOneStaking contract
     /// @custom:invariant - The `startAirdrop` function must always mint 50% on top of the total `HEXIT` minted during the sacrifice phase to the team wallet
     // @audit-issue - Invariants broken (LOW architectural issue)
@@ -1160,7 +1148,6 @@ contract HexOneProperties is PropertiesAsserts {
         assert(stakingContractBalance == (totalHexitMinted * 33) / 100);
         assert(teamWalletBalance == (totalHexitMinted * 50) / 100);
     }
-    */
 
     // ---------------------- Helpers ------------------------- (Free area to define helper functions)
     function setPrices(address tokenIn, address tokenOut, uint256 r) internal {
